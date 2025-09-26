@@ -1,0 +1,13 @@
+#dtoverlay=vc4-kms-v3d
+
+dtoverlay=vc4-fkms-v3d
+hdmi_group=1
+hdmi_mode=1
+hdmi_drive=2
+max_framebuffers=2
+enable_tvout=0
+dtparam=spi=on
+dtoverlay=fbtft,spi0-0,ili9341,bgr,rotate=270,speed=50000000,dc_pin=1,reset_pin=0,framebuffer_width=320,framebuffer_height=240
+dtoverlay=audremap,pins_12_13
+audio_pwm_mode=2
+disable_audio_dither
