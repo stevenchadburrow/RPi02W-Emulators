@@ -265,11 +265,11 @@ union()	{
 		}
 		
 		// L/R shoulder buttons
-		translate([7.5-4, -1, boards-1])
+		translate([7.5-4, -1, boards])
 		{
 			cube([8, thickness+1, 8]);
 		}
-		translate([width-7.5-4, -1, boards-1])
+		translate([width-7.5-4, -1, boards])
 		{
 			cube([8, thickness+1, 8]);
 		}
@@ -501,22 +501,22 @@ union()	{
 					cylinder(height-boards-7, 4, 4);
 				}
 			}
-			translate([7.5-4, 0, boards-1])
+			translate([7.5-4, 0, boards])
 			{
 				difference()
 				{
-					translate([-2,0,-boards+1])
+					translate([-2,0,-boards])
 					{
 						cube([12, 4, height]);
 					}
 					cube([8, 4, 8]);
 				}
 			}
-			translate([width-7.5-4, 0, boards-1])
+			translate([width-7.5-4, 0, boards])
 			{
 				difference()
 				{
-					translate([-2,0,-boards+1])
+					translate([-2,0,-boards])
 					{
 						cube([12, 4, height]);
 					}
@@ -639,8 +639,8 @@ scale([1,-1,1]) {
 	button(width-45.0, 67.5, boards+5);
 	button(width-34.0, 67.5, boards+5);
 
-	shoulder(7.5, 6.0, boards+3);
-	shoulder(width-7.5, 6.0, boards+3);
+	shoulder(7.5, 6.0, boards+4);
+	shoulder(width-7.5, 6.0, boards+4);
 }
 
 
