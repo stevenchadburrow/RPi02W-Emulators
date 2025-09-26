@@ -1,4 +1,4 @@
-# PeanutGB-RPi02W
+# RPi02W-PeanutGB
 <b>Running PeanutGB emulator on a Raspberry Pi Zero 2W</b><br>
 
 <a href="https://github.com/deltabeard/Peanut-GB">Link to Original PeanutGB Repo</a><br>
@@ -73,7 +73,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 <a href="https://youtube.com/shorts/ARCSKjPH7FA?si=rqlXaKl9zKCdxzBo">Youtube Short of Tobu Tobu Girl DX</a><br>
 
 <b>Pictures:</b><br>
-<img src="PeanutGB-RPi02W-LCD.jpg"><br>
-<img src="PeanutGB-RPi02W-HDMI.jpg"><br>
+<img src="RPi02W-PeanutGB-LCD.jpg"><br>
+<img src="RPi02W-PeanutGB-HDMI.jpg"><br>
 
 
