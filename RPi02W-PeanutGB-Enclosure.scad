@@ -323,6 +323,40 @@ union()	{
 			cube([65.0, thickness+1, 5.0]);
 		}
 		
+		// screws for LCD panel
+		translate([width/2-50.0/2, -1, height-thickness-4.0-2.5])
+		{
+			rotate([-90, 0, 0])
+			{
+				cylinder(thickness+0, 4, 1);
+				cylinder(thickness+1, 1, 1);
+			}
+		}
+		translate([width/2+50.0/2, -1, height-thickness-4.0-2.5])
+		{
+			rotate([-90, 0, 0])
+			{
+				cylinder(thickness+0, 4, 1);
+				cylinder(thickness+1, 1, 1);
+			}
+		}
+		translate([width/2-50.0/2, depth+1, height-thickness-4.0-2.5])
+		{
+			rotate([90, 0, 0])
+			{
+				cylinder(thickness+0, 4, 1);
+				cylinder(thickness+1, 1, 1);
+			}
+		}
+		translate([width/2+50.0/2, depth+1, height-thickness-4.0-2.5])
+		{
+			rotate([90, 0, 0])
+			{
+				cylinder(thickness+0, 4, 1);
+				cylinder(thickness+1, 1, 1);
+			}
+		}
+		
 		// bottom vents
 		translate([width/2-16, thickness+6.0, -1])
 		{
@@ -587,6 +621,49 @@ union() {
 		//cube([width+20, depth+20, boards+10]);
 	}
 } } }
+
+// LCD support
+scale([1,-1,1]) {
+	difference() {
+	union() {
+	translate([width/2-35.0, thickness, height-thickness-4.0-5.0])
+	{
+		cube([70.0, depth-thickness*2, 5.0]);
+	}
+	translate([width/2-32.5, 18.0, boards])
+	{
+		cube([65.0, 5.0, height-thickness-4.0-5.0-boards]);
+	} }
+	union() {
+	translate([width/2-50.0/2, thickness, height-thickness-4.0-2.5])
+	{
+		rotate([-90, 0, 0])
+		{
+			cylinder(10.0, 1, 1);
+		}
+	}
+	translate([width/2+50.0/2, thickness, height-thickness-4.0-2.5])
+	{
+		rotate([-90, 0, 0])
+		{
+			cylinder(10.0, 1, 1);
+		}
+	}
+	translate([width/2-50.0/2, depth-thickness, height-thickness-4.0-2.5])
+	{
+		rotate([90, 0, 0])
+		{
+			cylinder(10.0, 1, 1);
+		}
+	}
+	translate([width/2+50.0/2, depth-thickness, height-thickness-4.0-2.5])
+	{
+		rotate([90, 0, 0])
+		{
+			cylinder(10.0, 1, 1);
+		}
+	} } }
+}
 
 module button(x,y,z)
 {
