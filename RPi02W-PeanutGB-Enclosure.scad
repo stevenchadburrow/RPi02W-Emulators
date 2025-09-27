@@ -167,10 +167,22 @@ union()	{
 			cylinder(thickness+2, 1, 1);
 		}
 		
+		// backlight pot
+		translate([width-8.9, 63.75, -1])
+		{
+			cylinder(thickness+1, 2.5, 2.5);
+		}
+		
 		// LCD screen
 		translate([width/2-35.0, 12.75, height-thickness-1])
 		{
 			cube([70.0, 50.0, thickness+1]);
+		}
+		
+		// LED
+		translate([width-31.25, 13.75, height-thickness-1])
+		{
+			cylinder(thickness+1, 3, 3);
 		}
 		
 		// speaker holes
@@ -409,6 +421,16 @@ union()	{
 				{
 					cylinder(height-thickness, 4, 4);
 					cylinder(height-thickness, 1, 1);
+				}
+			}
+			
+			// LED support
+			translate([width-31.25, 13.75, boards+5])
+			{
+				difference()
+				{
+					cylinder(height-boards-5, 4, 4);
+					cylinder(height-boards-5, 3, 3);
 				}
 			}
 			
