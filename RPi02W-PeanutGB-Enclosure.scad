@@ -174,9 +174,9 @@ union()	{
 		}
 		
 		// LCD screen
-		translate([width/2-35.0, 12.75, height-thickness-1])
+		translate([width/2-60.0/2, 12.75, height-thickness-1])
 		{
-			cube([70.0, 50.0, thickness+1]);
+			cube([60.0, 50.0, thickness+1]);
 		}
 		
 		// LED
@@ -324,7 +324,7 @@ union()	{
 		}
 		
 		// screws for LCD panel
-		translate([width/2-50.0/2, -1, height-thickness-4.0-2.5])
+		translate([width/2-45.0/2, -1, height-thickness-4.0-2.5])
 		{
 			rotate([-90, 0, 0])
 			{
@@ -332,7 +332,7 @@ union()	{
 				cylinder(thickness+1, 1, 1);
 			}
 		}
-		translate([width/2+50.0/2, -1, height-thickness-4.0-2.5])
+		translate([width/2+45.0/2, -1, height-thickness-4.0-2.5])
 		{
 			rotate([-90, 0, 0])
 			{
@@ -340,7 +340,7 @@ union()	{
 				cylinder(thickness+1, 1, 1);
 			}
 		}
-		translate([width/2-50.0/2, depth+1, height-thickness-4.0-2.5])
+		translate([width/2-45.0/2, depth+1, height-thickness-4.0-2.5])
 		{
 			rotate([90, 0, 0])
 			{
@@ -348,7 +348,7 @@ union()	{
 				cylinder(thickness+1, 1, 1);
 			}
 		}
-		translate([width/2+50.0/2, depth+1, height-thickness-4.0-2.5])
+		translate([width/2+45.0/2, depth+1, height-thickness-4.0-2.5])
 		{
 			rotate([90, 0, 0])
 			{
@@ -626,37 +626,37 @@ union() {
 scale([1,-1,1]) {
 	difference() {
 	union() {
-	translate([width/2-35.0, thickness, height-thickness-4.0-5.0])
+	translate([width/2-60.0/2, thickness, height-thickness-4.0-5.0])
 	{
-		cube([70.0, depth-thickness*2, 5.0]);
+		cube([60.0, depth-thickness*2, 5.0]);
 	}
-	translate([width/2-32.5, 18.0, boards])
+	translate([width/2-30.0, 18.0, boards])
 	{
-		cube([65.0, 5.0, height-thickness-4.0-5.0-boards]);
+		cube([60.0, 5.0, height-thickness-4.0-5.0-boards]);
 	} }
 	union() {
-	translate([width/2-50.0/2, thickness, height-thickness-4.0-2.5])
+	translate([width/2-45.0/2, thickness, height-thickness-4.0-2.5])
 	{
 		rotate([-90, 0, 0])
 		{
 			cylinder(10.0, 1, 1);
 		}
 	}
-	translate([width/2+50.0/2, thickness, height-thickness-4.0-2.5])
+	translate([width/2+45.0/2, thickness, height-thickness-4.0-2.5])
 	{
 		rotate([-90, 0, 0])
 		{
 			cylinder(10.0, 1, 1);
 		}
 	}
-	translate([width/2-50.0/2, depth-thickness, height-thickness-4.0-2.5])
+	translate([width/2-45.0/2, depth-thickness, height-thickness-4.0-2.5])
 	{
 		rotate([90, 0, 0])
 		{
 			cylinder(10.0, 1, 1);
 		}
 	}
-	translate([width/2+50.0/2, depth-thickness, height-thickness-4.0-2.5])
+	translate([width/2+45.0/2, depth-thickness, height-thickness-4.0-2.5])
 	{
 		rotate([90, 0, 0])
 		{
