@@ -6105,8 +6105,8 @@ int main(int argc, char* argv[]) {
 	int sound_file = 0;
 	int sound_fragment = 0x0004000A; // 4 blocks, each is 2^10 = 1024
 	int sound_stereo = 0;
-	int sound_format = AFMT_S8; // AFMT_U8;
-	int sound_speed = 61162; // calculations: 61162 = 1024 * (4194304 / 70224) + 1
+	int sound_format = AFMT_S16_BE; // AFMT_U8;
+	int sound_speed = 61162/2; // calculations: 61162 = 1024 * (4194304 / 70224) + 1
 
 	sound_file = open("/dev/dsp", O_WRONLY);
 
@@ -6115,6 +6115,7 @@ int main(int argc, char* argv[]) {
 	ioctl(sound_file, SNDCTL_DSP_SETFMT, &sound_format);
 	ioctl(sound_file, SNDCTL_DSP_SPEED, &sound_speed);
 
+	unsigned short sound_array[512];
 
     //sdl_init();
     arm_reset();
@@ -6290,8 +6291,27 @@ int main(int argc, char* argv[]) {
 		while (clock() < previous_clock + 16667) { }
 		previous_clock = clock();
 
-		// WRITE AUDIO HERE!
-		//write(sound_file, &audio_buffer, 1024); // AUDIO_SAMPLES
+		unsigned short sound_temp = 0;
+
+		// collect audio into array
+    	for (int i = 0; i < 512; i++)
+		{
+			sound_temp = (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // left channel
+
+			snd_cur_play++;
+
+			sound_temp += (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // right channel
+
+			snd_cur_play++; 
+
+			sound_array[i] = (unsigned char)((unsigned short)(sound_temp) + 0x8000); // signed
+    	}
+
+		//Avoid desync between the Play cursor and the Write cursor
+		snd_cur_play += ((int32_t)(snd_cur_write - snd_cur_play) >> 8) & ~1;
+
+		// write audio to /dev/fb0
+		write(sound_file, &sound_array, 512*2); // AUDIO_SAMPLES
     }
 
     //sdl_uninit();
