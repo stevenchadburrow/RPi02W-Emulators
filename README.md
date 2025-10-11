@@ -69,6 +69,10 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 - In order to send audio data, PeanutGB will stream directly to ``` /dev/dsp ```.<br>
 - Warning: ``` /dev/dsp ``` is only available after ``` sudo modprobe snd-pcm-oss ```.<br>
 
+<b>GBA Emulator Development:</b><br>
+Work is progress to include gdkGBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>, in order to play Gameboy Advance games.<br>  
+As of now it lacks sound, but otherwise works with a few tested ROMs.<br>
+
 <b>Videos:</b><br>
 <a href="https://youtube.com/shorts/ARCSKjPH7FA?si=rqlXaKl9zKCdxzBo">Youtube Short of me playing Tobu Tobu Girl DX</a><br>
 
