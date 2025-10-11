@@ -75,5 +75,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 <b>Pictures:</b><br>
 <img src="Images/RPi02W-PeanutGB-Prelim-LCD.jpg"><br>
 <img src="Images/RPi02W-PeanutGB-Prelim-HDMI.jpg"><br>
+<img src="Images/RPi02W-PeanutGB-Prelim-PCB.jpg"><br>
+<img src="Images/RPi02W-PeanutGB-Prelim-Case.jpg"><br>
 
 
