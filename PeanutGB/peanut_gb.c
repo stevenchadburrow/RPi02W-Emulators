@@ -199,113 +199,87 @@ void lcd_draw_line(struct gb_s *gb,
 		
 		unsigned short comp = 0;
 
-		if (scanline_scaled == 0)
+		if (scanline_handheld == 0)
 		{
-			if (scanline_handheld == 0)
+			for(unsigned int x = 0; x < LCD_WIDTH; x++)
 			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
-				{
-					comp = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7FE0) << 1) | (gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F);
+				comp = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7FE0) << 1) | (gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F);
 
-					screen_large_buffer[(x*2) + (line*2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*2+1) + (line*2) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
 
-					screen_large_buffer[(x*2) + (line*2+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*2+1) + (line*2+1) * SCREEN_LARGE_WIDTH] = comp;
-				}
-			}
-			else if (scanline_handheld == 1)
-			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
-				{
-					screen_buffer[(x) + (line) * SCREEN_WIDTH] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7FE0) << 1) | (gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F);
-				}
+				screen_large_buffer[(x*3 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+
+				screen_large_buffer[(x*3 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;					
 			}
 		}
-		else
+		else if (scanline_handheld == 1)
 		{
-			if (scanline_handheld == 0)
+			unsigned long blend_red[5], blend_green[5], blend_blue[5];
+
+			unsigned short pos_x = 40;
+			unsigned short pos_y = 12 + scanline_count;
+			
+			for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
 			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
-				{
-					comp = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7FE0) << 1) | (gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F);
-
-					screen_large_buffer[(x*3) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
-
-					screen_large_buffer[(x*3) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
-
-					screen_large_buffer[(x*3) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;					
-				}
-			}
-			else if (scanline_handheld == 1)
-			{
-				unsigned long blend_red[5], blend_green[5], blend_blue[5];
-
-				unsigned short pos_x = 8;
-				unsigned short pos_y = 12 + scanline_count;
+				comp_red[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7C00) << 1);
+				comp_green[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x03E0) << 1);
+				comp_blue[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F));
 				
-				for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
-				{
-					comp_red[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x7C00) << 1);
-					comp_green[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x03E0) << 1);
-					comp_blue[0][0] = ((gb->cgb.fixPalette[scanline_pixels1[x]] & 0x001F));
-					
-					comp_red[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x7C00) << 1);
-					comp_green[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x03E0) << 1);
-					comp_blue[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x001F));
-					
-					comp_red[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x7C00) << 1);
-					comp_green[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x03E0) << 1);
-					comp_blue[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x001F));
-					
-					comp_red[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x7C00) << 1);
-					comp_green[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x03E0) << 1);
-					comp_blue[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x001F));
+				comp_red[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x7C00) << 1);
+				comp_green[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x03E0) << 1);
+				comp_blue[1][0] = ((gb->cgb.fixPalette[scanline_pixels1[x+1]] & 0x001F));
+				
+				comp_red[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x7C00) << 1);
+				comp_green[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x03E0) << 1);
+				comp_blue[0][1] = ((gb->cgb.fixPalette[scanline_pixels2[x]] & 0x001F));
+				
+				comp_red[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x7C00) << 1);
+				comp_green[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x03E0) << 1);
+				comp_blue[1][1] = ((gb->cgb.fixPalette[scanline_pixels2[x+1]] & 0x001F));
 
-					blend_red[0] = (((comp_red[0][0] + comp_red[1][0]) >> 1) & 0xF800);
-					blend_green[0] = (((comp_green[0][0] + comp_green[1][0]) >> 1) & 0x07E0);
-					blend_blue[0] = (((comp_blue[0][0] + comp_blue[1][0]) >> 1) & 0x001F);
-					
-					blend_red[1] = (((comp_red[0][1] + comp_red[1][1]) >> 1) & 0xF800);
-					blend_green[1] = (((comp_green[0][1] + comp_green[1][1]) >> 1) & 0x07E0);
-					blend_blue[1] = (((comp_blue[0][1] + comp_blue[1][1]) >> 1) & 0x001F);
-					
-					blend_red[2] = (((comp_red[0][0] + comp_red[0][1]) >> 1) & 0xF800);
-					blend_green[2] = (((comp_green[0][0] + comp_green[0][1]) >> 1) & 0x07E0);
-					blend_blue[2] = (((comp_blue[0][0] + comp_blue[0][1]) >> 1) & 0x001F);
-					
-					blend_red[3] = (((comp_red[1][0] + comp_red[1][1]) >> 1) & 0xF800);
-					blend_green[3] = (((comp_green[1][0] + comp_green[1][1]) >> 1) & 0x07E0);
-					blend_blue[3] = (((comp_blue[1][0] + comp_blue[1][1]) >> 1) & 0x001F);
-					
-					blend_red[4] = (((blend_red[0] + blend_red[1] + blend_red[2] + blend_red[3]) >> 2) & 0xF800);
-					blend_green[4] = (((blend_green[0] + blend_green[1] + blend_green[2] + blend_green[3]) >> 2) & 0x07E0);
-					blend_blue[4] = (((blend_blue[0] + blend_blue[1] + blend_blue[2] + blend_blue[3]) >> 2) & 0x001F);
-					
-					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][0] | comp_green[0][0] | comp_blue[0][0]);
-					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[2] | blend_green[2] | blend_blue[2]);
-					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][1] | comp_green[0][1] | comp_blue[0][1]);
+				blend_red[0] = (((comp_red[0][0] + comp_red[1][0]) >> 1) & 0xF800);
+				blend_green[0] = (((comp_green[0][0] + comp_green[1][0]) >> 1) & 0x07E0);
+				blend_blue[0] = (((comp_blue[0][0] + comp_blue[1][0]) >> 1) & 0x001F);
+				
+				blend_red[1] = (((comp_red[0][1] + comp_red[1][1]) >> 1) & 0xF800);
+				blend_green[1] = (((comp_green[0][1] + comp_green[1][1]) >> 1) & 0x07E0);
+				blend_blue[1] = (((comp_blue[0][1] + comp_blue[1][1]) >> 1) & 0x001F);
+				
+				blend_red[2] = (((comp_red[0][0] + comp_red[0][1]) >> 1) & 0xF800);
+				blend_green[2] = (((comp_green[0][0] + comp_green[0][1]) >> 1) & 0x07E0);
+				blend_blue[2] = (((comp_blue[0][0] + comp_blue[0][1]) >> 1) & 0x001F);
+				
+				blend_red[3] = (((comp_red[1][0] + comp_red[1][1]) >> 1) & 0xF800);
+				blend_green[3] = (((comp_green[1][0] + comp_green[1][1]) >> 1) & 0x07E0);
+				blend_blue[3] = (((comp_blue[1][0] + comp_blue[1][1]) >> 1) & 0x001F);
+				
+				blend_red[4] = (((blend_red[0] + blend_red[1] + blend_red[2] + blend_red[3]) >> 2) & 0xF800);
+				blend_green[4] = (((blend_green[0] + blend_green[1] + blend_green[2] + blend_green[3]) >> 2) & 0x07E0);
+				blend_blue[4] = (((blend_blue[0] + blend_blue[1] + blend_blue[2] + blend_blue[3]) >> 2) & 0x001F);
+				
+				screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][0] | comp_green[0][0] | comp_blue[0][0]);
+				screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[2] | blend_green[2] | blend_blue[2]);
+				screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][1] | comp_green[0][1] | comp_blue[0][1]);
 
-					pos_x++;
+				pos_x++;
 
-					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(blend_red[0] | blend_green[0] | blend_blue[0]);
-					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[4] | blend_green[4] | blend_blue[4]);
-					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(blend_red[1] | blend_green[1] | blend_blue[1]);
+				screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(blend_red[0] | blend_green[0] | blend_blue[0]);
+				screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[4] | blend_green[4] | blend_blue[4]);
+				screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(blend_red[1] | blend_green[1] | blend_blue[1]);
 
-					pos_x++;
+				pos_x++;
 
-					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][0] | comp_green[1][0] | comp_blue[1][0]);
-					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[3] | blend_green[3] | blend_blue[3]);
-					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][1] | comp_green[1][1] | comp_blue[1][1]);
+				screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][0] | comp_green[1][0] | comp_blue[1][0]);
+				screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[3] | blend_green[3] | blend_blue[3]);
+				screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][1] | comp_green[1][1] | comp_blue[1][1]);
 
-					pos_x++;
-				}
+				pos_x++;
 			}
 		}
 	}
@@ -313,171 +287,145 @@ void lcd_draw_line(struct gb_s *gb,
 	{
 		unsigned short comp = 0;
 
-		if (scanline_scaled == 0)
+		if (scanline_handheld == 0)
 		{
-			if (scanline_handheld == 1)
+			for(unsigned int x = 0; x < LCD_WIDTH; x++)
 			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
-				{
-					comp = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
+				comp = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
 
-					screen_large_buffer[(x*2) + (line*2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*2+1) + (line*2) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3 + 24) * SCREEN_LARGE_WIDTH] = comp;
 
-					screen_large_buffer[(x*2) + (line*2+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*2+1) + (line*2+1) * SCREEN_LARGE_WIDTH] = comp;
-				}
-			}
-			else if (scanline_handheld == 1)
-			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
-				{
-					screen_buffer[(x) + (line) * SCREEN_WIDTH] = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
-				}
+				screen_large_buffer[(x*3 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3+1 + 24) * SCREEN_LARGE_WIDTH] = comp;
+
+				screen_large_buffer[(x*3 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+1 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;
+				screen_large_buffer[(x*3+2 + 80) + (line*3+2 + 24) * SCREEN_LARGE_WIDTH] = comp;					
 			}
 		}
-		else
+		else if (scanline_handheld == 1)
 		{
-			if (scanline_handheld == 0)
+			if (palette_num < 4) // greyscale
 			{
-				for(unsigned int x = 0; x < LCD_WIDTH; x++)
+				unsigned char grid[3][3];
+
+				unsigned short pos_x = 40;
+				unsigned short pos_y = 12 + scanline_count;
+
+				unsigned char pal[2][2];
+
+				for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
 				{
-					comp = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
+					grid[0][0] = ((scanline_pixels1[x] & 3) << 1);
+					grid[2][0] = ((scanline_pixels1[x+1] & 3) << 1);
+					grid[1][0] = ((grid[0][0] + grid[2][0]) >> 1);
 
-					screen_large_buffer[(x*3) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3) * SCREEN_LARGE_WIDTH] = comp;
+					grid[0][2] = ((scanline_pixels2[x] & 3) << 1);
+					grid[2][2] = ((scanline_pixels2[x+1] & 3) << 1);
+					grid[1][2] = ((grid[0][2] + grid[2][2]) >> 1);
 
-					screen_large_buffer[(x*3) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3+1) * SCREEN_LARGE_WIDTH] = comp;
+					grid[0][1] = ((grid[0][0] + grid[0][2]) >> 1);
+					grid[1][1] = ((grid[1][0] + grid[1][2]) >> 1);
+					grid[2][1] = ((grid[2][0] + grid[2][2]) >> 1);
 
-					screen_large_buffer[(x*3) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+1) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;
-					screen_large_buffer[(x*3+2) + (line*3+2) * SCREEN_LARGE_WIDTH] = comp;					
+					pal[0][0] = ((scanline_pixels1[x]&LCD_PALETTE_ALL) >> 4);
+					pal[1][0] = ((scanline_pixels1[x+1]&LCD_PALETTE_ALL) >> 4);
+					pal[0][1] = ((scanline_pixels2[x]&LCD_PALETTE_ALL) >> 4);
+					pal[1][1] = ((scanline_pixels2[x+1]&LCD_PALETTE_ALL) >> 4);
+
+					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[0][0]];
+					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[0][1]];
+					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][0]][grid[0][2]];
+
+					pos_x++;
+
+					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[1][0]];
+					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[1][1]];
+					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][0]][grid[1][2]];
+
+					pos_x++;
+
+					screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][1]][grid[2][0]];
+					screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][1]][grid[2][1]];
+					screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][1]][grid[2][2]];
+
+					pos_x++;
 				}
 			}
-			else if (scanline_handheld == 1)
+			else // GBC palettes for DMG
 			{
-				if (palette_num < 4) // greyscale
+				unsigned long orig_pix[2][2];
+				
+				unsigned long comp_red[2][2], comp_green[2][2], comp_blue[2][2];
+				
+				unsigned long blend_red[5], blend_green[5], blend_blue[5];
+
+				unsigned short pos_x = 8;
+				unsigned short pos_y = 12 + scanline_count;
+
+				for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
 				{
-					unsigned char grid[3][3];
-
-					unsigned short pos_x = 8;
-					unsigned short pos_y = 12 + scanline_count;
-
-					unsigned char pal[2][2];
-
-					for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
-					{
-						grid[0][0] = ((scanline_pixels1[x] & 3) << 1);
-						grid[2][0] = ((scanline_pixels1[x+1] & 3) << 1);
-						grid[1][0] = ((grid[0][0] + grid[2][0]) >> 1);
-
-						grid[0][2] = ((scanline_pixels2[x] & 3) << 1);
-						grid[2][2] = ((scanline_pixels2[x+1] & 3) << 1);
-						grid[1][2] = ((grid[0][2] + grid[2][2]) >> 1);
-
-						grid[0][1] = ((grid[0][0] + grid[0][2]) >> 1);
-						grid[1][1] = ((grid[1][0] + grid[1][2]) >> 1);
-						grid[2][1] = ((grid[2][0] + grid[2][2]) >> 1);
-
-						pal[0][0] = ((scanline_pixels1[x]&LCD_PALETTE_ALL) >> 4);
-						pal[1][0] = ((scanline_pixels1[x+1]&LCD_PALETTE_ALL) >> 4);
-						pal[0][1] = ((scanline_pixels2[x]&LCD_PALETTE_ALL) >> 4);
-						pal[1][1] = ((scanline_pixels2[x+1]&LCD_PALETTE_ALL) >> 4);
-
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[0][0]];
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[0][1]];
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][0]][grid[0][2]];
-
-						pos_x++;
-
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[1][0]];
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][0]][grid[1][1]];
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][0]][grid[1][2]];
-
-						pos_x++;
-
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][1]][grid[2][0]];
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = selected_palette_lcd[pal[0][1]][grid[2][1]];
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = selected_palette_lcd[pal[1][1]][grid[2][2]];
-
-						pos_x++;
-					}
-				}
-				else // GBC palettes for DMG
-				{
-					unsigned long orig_pix[2][2];
+					orig_pix[0][0] = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
+					orig_pix[1][0] = selected_palette_lcd[(scanline_pixels1[(x+1)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x+1)] & 3)<<1)];
+					orig_pix[0][1] = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels2[(x)] & 3)<<1)];
+					orig_pix[1][1] = selected_palette_lcd[(scanline_pixels1[(x+1)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels2[(x+1)] & 3)<<1)];
 					
-					unsigned long comp_red[2][2], comp_green[2][2], comp_blue[2][2];
+					comp_red[0][0] = (orig_pix[0][0] & 0x001C);
+					comp_green[0][0] = (orig_pix[0][0] & 0x0700);
+					comp_blue[0][0] = (orig_pix[0][0] & 0xC000);
+
+					comp_red[1][0] = (orig_pix[1][0] & 0x001C);
+					comp_green[1][0] = (orig_pix[1][0] & 0x0700);
+					comp_blue[1][0] = (orig_pix[1][0] & 0xC000);
 					
-					unsigned long blend_red[5], blend_green[5], blend_blue[5];
+					comp_red[0][1] = (orig_pix[0][1] & 0x001C);
+					comp_green[0][1] = (orig_pix[0][1] & 0x0700);
+					comp_blue[0][1] = (orig_pix[0][1] & 0xC000);
+					
+					comp_red[1][1] = (orig_pix[1][1] & 0x001C);
+					comp_green[1][1] = (orig_pix[1][1] & 0x0700);
+					comp_blue[1][1] = (orig_pix[1][1] & 0xC000);
 
-					unsigned short pos_x = 8;
-					unsigned short pos_y = 12 + scanline_count;
+					blend_red[0] = (((comp_red[0][0] + comp_red[1][0]) >> 1) & 0x001C);
+					blend_green[0] = (((comp_green[0][0] + comp_green[1][0]) >> 1) & 0x0700);
+					blend_blue[0] = (((comp_blue[0][0] + comp_blue[1][0]) >> 1) & 0xC000);
 
-					for (unsigned int x = 0; x < LCD_WIDTH; x+=2)
-					{
-						orig_pix[0][0] = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x)] & 3)<<1)];
-						orig_pix[1][0] = selected_palette_lcd[(scanline_pixels1[(x+1)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels1[(x+1)] & 3)<<1)];
-						orig_pix[0][1] = selected_palette_lcd[(scanline_pixels1[(x)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels2[(x)] & 3)<<1)];
-						orig_pix[1][1] = selected_palette_lcd[(scanline_pixels1[(x+1)] & LCD_PALETTE_ALL) >> 4][((scanline_pixels2[(x+1)] & 3)<<1)];
-						
-						comp_red[0][0] = (orig_pix[0][0] & 0x001C);
-						comp_green[0][0] = (orig_pix[0][0] & 0x0700);
-						comp_blue[0][0] = (orig_pix[0][0] & 0xC000);
+					blend_red[1] = (((comp_red[0][1] + comp_red[1][1]) >> 1) & 0x001C);
+					blend_green[1] = (((comp_green[0][1] + comp_green[1][1]) >> 1) & 0x0700);
+					blend_blue[1] = (((comp_blue[0][1] + comp_blue[1][1]) >> 1) & 0xC000);
 
-						comp_red[1][0] = (orig_pix[1][0] & 0x001C);
-						comp_green[1][0] = (orig_pix[1][0] & 0x0700);
-						comp_blue[1][0] = (orig_pix[1][0] & 0xC000);
-						
-						comp_red[0][1] = (orig_pix[0][1] & 0x001C);
-						comp_green[0][1] = (orig_pix[0][1] & 0x0700);
-						comp_blue[0][1] = (orig_pix[0][1] & 0xC000);
-						
-						comp_red[1][1] = (orig_pix[1][1] & 0x001C);
-						comp_green[1][1] = (orig_pix[1][1] & 0x0700);
-						comp_blue[1][1] = (orig_pix[1][1] & 0xC000);
+					blend_red[2] = (((comp_red[0][0] + comp_red[0][1]) >> 1) & 0x001C);
+					blend_green[2] = (((comp_green[0][0] + comp_green[0][1]) >> 1) & 0x0700);
+					blend_blue[2] = (((comp_blue[0][0] + comp_blue[0][1]) >> 1) & 0xC000);
 
-						blend_red[0] = (((comp_red[0][0] + comp_red[1][0]) >> 1) & 0x001C);
-						blend_green[0] = (((comp_green[0][0] + comp_green[1][0]) >> 1) & 0x0700);
-						blend_blue[0] = (((comp_blue[0][0] + comp_blue[1][0]) >> 1) & 0xC000);
+					blend_red[3] = (((comp_red[1][0] + comp_red[1][1]) >> 1) & 0x001C);
+					blend_green[3] = (((comp_green[1][0] + comp_green[1][1]) >> 1) & 0x0700);
+					blend_blue[3] = (((comp_blue[1][0] + comp_blue[1][1]) >> 1) & 0xC000);
 
-						blend_red[1] = (((comp_red[0][1] + comp_red[1][1]) >> 1) & 0x001C);
-						blend_green[1] = (((comp_green[0][1] + comp_green[1][1]) >> 1) & 0x0700);
-						blend_blue[1] = (((comp_blue[0][1] + comp_blue[1][1]) >> 1) & 0xC000);
+					blend_red[4] = (((blend_red[0] + blend_red[1] + blend_red[2] + blend_red[3]) >> 2) & 0x001C);
+					blend_green[4] = (((blend_green[0] + blend_green[1] + blend_green[2] + blend_green[3]) >> 2) & 0x0700);
+					blend_blue[4] = (((blend_blue[0] + blend_blue[1] + blend_blue[2] + blend_blue[3]) >> 2) & 0xC000);
 
-						blend_red[2] = (((comp_red[0][0] + comp_red[0][1]) >> 1) & 0x001C);
-						blend_green[2] = (((comp_green[0][0] + comp_green[0][1]) >> 1) & 0x0700);
-						blend_blue[2] = (((comp_blue[0][0] + comp_blue[0][1]) >> 1) & 0xC000);
+					screen_buffer[(pos_x + 40) + (pos_y + 12) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][0] | comp_green[0][0] | comp_blue[0][0]);
+					screen_buffer[(pos_x + 40) + (pos_y+1 + 12) * SCREEN_WIDTH] = (unsigned short)(blend_red[2] | blend_green[2] | blend_blue[2]);
+					screen_buffer[(pos_x + 40) + (pos_y+2 + 12) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][1] | comp_green[0][1] | comp_blue[0][1]);
 
-						blend_red[3] = (((comp_red[1][0] + comp_red[1][1]) >> 1) & 0x001C);
-						blend_green[3] = (((comp_green[1][0] + comp_green[1][1]) >> 1) & 0x0700);
-						blend_blue[3] = (((comp_blue[1][0] + comp_blue[1][1]) >> 1) & 0xC000);
+					pos_x++;
 
-						blend_red[4] = (((blend_red[0] + blend_red[1] + blend_red[2] + blend_red[3]) >> 2) & 0x001C);
-						blend_green[4] = (((blend_green[0] + blend_green[1] + blend_green[2] + blend_green[3]) >> 2) & 0x0700);
-						blend_blue[4] = (((blend_blue[0] + blend_blue[1] + blend_blue[2] + blend_blue[3]) >> 2) & 0xC000);
+					screen_buffer[(pos_x + 40) + (pos_y + 12) * SCREEN_WIDTH] = (unsigned short)(blend_red[0] | blend_green[0] | blend_blue[0]);
+					screen_buffer[(pos_x + 40) + (pos_y+1 + 12) * SCREEN_WIDTH] = (unsigned short)(blend_red[4] | blend_green[4] | blend_blue[4]);
+					screen_buffer[(pos_x + 40) + (pos_y+2 + 12) * SCREEN_WIDTH] = (unsigned short)(blend_red[1] | blend_green[1] | blend_blue[1]);
 
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][0] | comp_green[0][0] | comp_blue[0][0]);
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[2] | blend_green[2] | blend_blue[2]);
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[0][1] | comp_green[0][1] | comp_blue[0][1]);
+					pos_x++;
 
-						pos_x++;
+					screen_buffer[(pos_x + 40) + (pos_y + 12) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][0] | comp_green[1][0] | comp_blue[1][0]);
+					screen_buffer[(pos_x + 40) + (pos_y+1 + 12) * SCREEN_WIDTH] = (unsigned short)(blend_red[3] | blend_green[3] | blend_blue[3]);
+					screen_buffer[(pos_x + 40) + (pos_y+2 + 12) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][1] | comp_green[1][1] | comp_blue[1][1]);
 
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(blend_red[0] | blend_green[0] | blend_blue[0]);
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[4] | blend_green[4] | blend_blue[4]);
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(blend_red[1] | blend_green[1] | blend_blue[1]);
-
-						pos_x++;
-
-						screen_buffer[(pos_x) + (pos_y) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][0] | comp_green[1][0] | comp_blue[1][0]);
-						screen_buffer[(pos_x) + (pos_y+1) * SCREEN_WIDTH] = (unsigned short)(blend_red[3] | blend_green[3] | blend_blue[3]);
-						screen_buffer[(pos_x) + (pos_y+2) * SCREEN_WIDTH] = (unsigned short)(comp_red[1][1] | comp_green[1][1] | comp_blue[1][1]);
-
-						pos_x++;
-					}
+					pos_x++;
 				}
 			}
 		}

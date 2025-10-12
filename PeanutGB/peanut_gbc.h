@@ -40,7 +40,6 @@
 uint8_t scanline_pixels1[160] = {0};
 uint8_t scanline_pixels2[160] = {0};
 uint8_t scanline_pixels_prio[160] = {0};  //do these pixels have priority over OAM?
-uint8_t scanline_scaled = 1; // to make 1.5x scale
 uint8_t scanline_handheld = 0; // switch between hdmi or lcd
 uint8_t scanline_toggle = 0;
 uint8_t scanline_count = 0;
@@ -1358,7 +1357,7 @@ void __gb_draw_line(struct gb_s *gb) {
         return;
     }
     
-    if (scanline_scaled == 0 || scanline_handheld == 0) scanline_toggle = 0;
+    if (scanline_handheld == 0) scanline_toggle = 0;
 
     /* If background is enabled, draw it. */
     if (gb->gb_reg.LCDC & LCDC_BG_ENABLE) {
@@ -1682,7 +1681,7 @@ void __gb_draw_line(struct gb_s *gb) {
 
     if (scanline_toggle == 0)
     {
-        if (scanline_scaled == 0 || scanline_handheld == 0)
+        if (scanline_handheld == 0)
         {
             gb->display.lcd_draw_line(gb,
                 //scanline_pixels1,
