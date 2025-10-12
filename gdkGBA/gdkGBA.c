@@ -43,6 +43,12 @@ For more information, please refer to <http://unlicense.org/>
 #include <linux/kd.h>
 #include <termios.h>
 
+int fps_rate = 20; // values: 60, 45, 30, 20
+int fps_counter = 0;
+int fps_graphics = 0;
+int fps_audio = 0;
+int fps_wait = 0;
+
 //#include <SDL2/SDL.h>
 //#include <SDL2/SDL_audio.h>
 
@@ -5904,7 +5910,7 @@ static void render_bg() {
     }
 }
 
-static void render_line() {
+static void render_line() {	
     uint32_t addr;
 
     uint32_t addr_s = v_count.w * 240 * 4;
@@ -5972,7 +5978,10 @@ void run_frame() {
 
         //H-Blank start
         if (v_count.w < LINES_VISIBLE) {
-            render_line();
+			if (fps_graphics > 0)
+			{
+            	render_line();
+			}
             dma_transfer(HBLANK);
         }
 
@@ -5980,14 +5989,14 @@ void run_frame() {
 
         arm_exec(CYC_LINE_HBLK1);
 
-        sound_clock(CYC_LINE_TOTAL);
+		sound_clock(CYC_LINE_TOTAL);
     }
 
     //SDL_UnlockTexture(texture);
     //SDL_RenderCopy(renderer, texture, NULL, NULL);
     //SDL_RenderPresent(renderer);
 
-    sound_buffer_wrap();
+	sound_buffer_wrap();
 }
 
 
@@ -6103,10 +6112,10 @@ int main(int argc, char* argv[]) {
 
 	int sound_enable = 1;
 	int sound_file = 0;
-	int sound_fragment = 0x0004000A; // 4 blocks, each is 2^10 = 1024
+	int sound_fragment = 0x0004000A; // 4 blocks, each is 2^A = 2^10 = 1024
 	int sound_stereo = 0;
 	int sound_format = AFMT_S16_BE; // AFMT_U8;
-	int sound_speed = 61162/2; // calculations: 61162 = 1024 * (4194304 / 70224) + 1
+	int sound_speed = (unsigned int)((61162/2)); // calculations: 61162 = 1024 * (4194304 / 70224) + 1
 
 	sound_file = open("/dev/dsp", O_WRONLY);
 
@@ -6115,7 +6124,7 @@ int main(int argc, char* argv[]) {
 	ioctl(sound_file, SNDCTL_DSP_SETFMT, &sound_format);
 	ioctl(sound_file, SNDCTL_DSP_SPEED, &sound_speed);
 
-	unsigned short sound_array[512];
+	unsigned short sound_array[512*4];
 
     //sdl_init();
     arm_reset();
@@ -6214,104 +6223,175 @@ int main(int argc, char* argv[]) {
 		if (buttons_buffer[11] != '0') key_input.w &= ~BTN_LT;
 		if (buttons_buffer[12] != '0') key_input.w &= ~BTN_RT;
 		
-		if (screen_handheld == 0)
+		if (fps_graphics > 0)
 		{
-			unsigned short color = 0x0000;
-
-			for (int y=0; y<160; y++)
+			if (screen_handheld == 0)
 			{
-				for (int x=0; x<240; x++)
-				{
-					color = (unsigned short)(0x0000 |
-						((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
-						((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
-						((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
+				unsigned short color = 0x0000;
 
-					screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)color;
-					screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)color;
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)color;
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)color;
-				}
-			
-				for (int x=240; x<320; x++)
+				for (int y=0; y<160; y++)
 				{
-					screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
+					for (int x=0; x<240; x++)
+					{
+						color = (unsigned short)(0x0000 |
+							((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
+							((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
+							((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
+
+						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)color;
+						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)color;
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)color;
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)color;
+					}
+				
+					for (int x=240; x<320; x++)
+					{
+						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
+					}
 				}
+
+				for (int y=160; y<240; y++)
+				{
+					for (int x=0; x<320; x++)
+					{
+						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
+						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
+					}
+				}
+
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_large_buffer, 640*480*2);
+				close(screen_file);
 			}
-
-			for (int y=160; y<240; y++)
+			else
 			{
-				for (int x=0; x<320; x++)
+				for (int y=0; y<160; y++)
 				{
-					screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
-					screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
+					for (int x=0; x<240; x++)
+					{
+						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000 |
+							((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
+							((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
+							((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
+					}
+				
+					for (int x=240; x<320; x++)
+					{
+						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
+					}
 				}
-			}
 
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_large_buffer, 640*480*2);
-			close(screen_file);
+				for (int y=160; y<240; y++)
+				{
+					for (int x=0; x<320; x++)
+					{
+						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
+					}
+				}
+
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_small_buffer, 320*240*2);
+				close(screen_file);
+			}
 		}
-		else
+		
+		if (fps_audio > 0)
 		{
-			for (int y=0; y<160; y++)
+			unsigned short sound_temp = 0;
+
+			// collect audio into array
+			for (int i = 0; i < 512*fps_audio; i++)
 			{
-				for (int x=0; x<240; x++)
-				{
-					screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000 |
-						((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
-						((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
-						((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
-				}
-			
-				for (int x=240; x<320; x++)
-				{
-					screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
-				}
+				sound_temp = (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // left channel
+
+				snd_cur_play++;
+
+				sound_temp += (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // right channel
+
+				snd_cur_play++; 
+
+				sound_array[i] = (unsigned char)((unsigned short)(sound_temp) + 0x8000); // signed
 			}
 
-			for (int y=160; y<240; y++)
-			{
-				for (int x=0; x<320; x++)
-				{
-					screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
-				}
-			}
+			//Avoid desync between the Play cursor and the Write cursor
+			snd_cur_play += ((int32_t)(snd_cur_write - snd_cur_play) >> 8) & ~1;
 
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_small_buffer, 320*240*2);
-			close(screen_file);
+			// write audio to /dev/fb0
+			write(sound_file, &sound_array, 512*2*fps_audio); // AUDIO_SAMPLES
 		}
 
-		while (clock() < previous_clock + 16667) { }
-		previous_clock = clock();
-
-		unsigned short sound_temp = 0;
-
-		// collect audio into array
-    	for (int i = 0; i < 512; i++)
+		if (fps_wait > 0)
 		{
-			sound_temp = (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // left channel
+			while (clock() < previous_clock + 16667 * fps_wait) { }
+			previous_clock = clock();
+		}
 
-			snd_cur_play++;
+		fps_counter++;
 
-			sound_temp += (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // right channel
+		if (fps_rate == 60)
+		{
+			fps_counter = 0;
 
-			snd_cur_play++; 
-
-			sound_array[i] = (unsigned char)((unsigned short)(sound_temp) + 0x8000); // signed
-    	}
-
-		//Avoid desync between the Play cursor and the Write cursor
-		snd_cur_play += ((int32_t)(snd_cur_write - snd_cur_play) >> 8) & ~1;
-
-		// write audio to /dev/fb0
-		write(sound_file, &sound_array, 512*2); // AUDIO_SAMPLES
+			fps_graphics = 1;
+			fps_audio = 1;
+			fps_wait = 1;
+		}
+		else if (fps_rate == 45)
+		{
+			if (fps_counter >= 3) fps_counter = 0;
+			
+			if (fps_counter == 0)
+			{
+				fps_graphics = 0;
+				fps_audio = 3;
+				fps_wait = 3;
+			}
+			else
+			{
+				fps_graphics = 1;
+				fps_audio = 0;
+				fps_wait = 0;
+			}
+		}
+		else if (fps_rate == 30)
+		{
+			if (fps_counter >= 2) fps_counter = 0;
+			
+			if (fps_counter == 0)
+			{
+				fps_graphics = 0;
+				fps_audio = 2;
+				fps_wait = 2;
+			}
+			else
+			{
+				fps_graphics = 1;
+				fps_audio = 0;
+				fps_wait = 0;
+			}
+		}
+		else if (fps_rate == 20)
+		{
+			if (fps_counter >= 3) fps_counter = 0;
+			
+			if (fps_counter == 0)	
+			{
+				fps_graphics = 1;
+				fps_audio = 3;
+				fps_wait = 3;
+			}
+			else
+			{
+				fps_graphics = 0;
+				fps_audio = 0;
+				fps_wait = 0;
+			}
+		}
     }
 
     //sdl_uninit();
