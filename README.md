@@ -4,7 +4,7 @@
 <a href="https://github.com/deltabeard/Peanut-GB">Link to Original PeanutGB Repo</a><br>
 
 <b>Purpose:</b><br>
-This project is to introduce myself to how the Raspberry Pi Zero 2W works, and further my knowledge on 'modern' microprocessors running Linux.  The immediate goal is to make a handheld device that plays Gameboy and Gameboy Color games that can also connect to the television.  The next goal would be to run Gameboy Advance games as well.  I'm using PeanutGB because I am familiar with it, and I wanted to port something well-designed, well-tested, and that would have no problem running on this device.<br>
+This project is to introduce myself to how the Raspberry Pi Zero 2W works, and further my knowledge on 'modern' microprocessors running Linux.  The immediate goal is to make a handheld device that plays Gameboy and Gameboy Color games that can also connect to the television.  The next goal would be to run Gameboy Advance games as well (work in progress).  I'm using PeanutGB because I am familiar with it, and I wanted to port something well-designed, well-tested, and that would have no problem running on this device.<br>
 
 <b>Connecting an ILI9341 LCD in SPI mode using pins:</b><br>
 CS = GPIO8 / Pin24<br>
