@@ -70,7 +70,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 - Warning: ``` /dev/dsp ``` is only available after ``` sudo modprobe snd-pcm-oss ```.<br>
 
 <b>GBA Emulator Development:</b><br>
-Work is progress to include gdkGBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>, in order to play Gameboy Advance games.<br>
+Work is progress to include gdkGBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>, in order to play Gameboy Advance games.<br>  To get Normatt's open-source BIOS, I recommend downloading a copy from Nebuleon <a href="https://github.com/Nebuleon/ReGBA/">here</a>.
 
 <b>Videos:</b><br>
 <a href="https://youtube.com/shorts/ARCSKjPH7FA?si=rqlXaKl9zKCdxzBo">Youtube Short of me playing Tobu Tobu Girl DX</a><br>
