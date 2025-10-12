@@ -6091,6 +6091,16 @@ int main(int argc, char* argv[]) {
 	unsigned short screen_large_buffer[640*480];
 	unsigned short screen_small_buffer[320*240];
 
+	for (unsigned long i=0; i<640*480; i++)
+	{
+		screen_large_buffer[i] = 0;
+	}
+
+	for (unsigned long i=0; i<320*240; i++)
+	{
+		screen_small_buffer[i] = 0;
+	}
+
 	char size_buffer[3];
 	int size_file = open("/sys/class/graphics/fb0/virtual_size", O_RDONLY);
 	read(size_file, &size_buffer, 3);
@@ -6238,29 +6248,10 @@ int main(int argc, char* argv[]) {
 							((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
 							((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
 
-						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)color;
-						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)color;
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)color;
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)color;
-					}
-				
-					for (int x=240; x<320; x++)
-					{
-						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
-					}
-				}
-
-				for (int y=160; y<240; y++)
-				{
-					for (int x=0; x<320; x++)
-					{
-						screen_large_buffer[y * 640 * 2 + x * 2] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + x * 2 + 1] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2] = (unsigned short)(0x0000);
-						screen_large_buffer[y * 640 * 2 + 640 + x * 2 + 1] = (unsigned short)(0x0000);
+						screen_large_buffer[(y+40) * 640 * 2 + (x+40) * 2] = (unsigned short)color;
+						screen_large_buffer[(y+40) * 640 * 2 + (x+40) * 2 + 1] = (unsigned short)color;
+						screen_large_buffer[(y+40) * 640 * 2 + 640 + (x+40) * 2] = (unsigned short)color;
+						screen_large_buffer[(y+40) * 640 * 2 + 640 + (x+40) * 2 + 1] = (unsigned short)color;
 					}
 				}
 
@@ -6274,23 +6265,10 @@ int main(int argc, char* argv[]) {
 				{
 					for (int x=0; x<240; x++)
 					{
-						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000 |
-							((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
-							((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
-							((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
-					}
-				
-					for (int x=240; x<320; x++)
-					{
-						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
-					}
-				}
-
-				for (int y=160; y<240; y++)
-				{
-					for (int x=0; x<320; x++)
-					{
-						screen_small_buffer[y * 320 + x] = (unsigned short)(0x0000);
+						screen_small_buffer[(y+40) * 320 + (x+40)] = (unsigned short)(0x0000 |
+							((screen[(y+40) * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
+							((screen[(y+40) * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
+							((screen[(y+40) * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
 					}
 				}
 
