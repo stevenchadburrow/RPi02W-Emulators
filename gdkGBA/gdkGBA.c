@@ -6266,9 +6266,9 @@ int main(int argc, char* argv[]) {
 					for (int x=0; x<240; x++)
 					{
 						screen_small_buffer[(y+40) * 320 + (x+40)] = (unsigned short)(0x0000 |
-							((screen[(y+40) * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
-							((screen[(y+40) * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
-							((screen[(y+40) * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
+							((screen[y * 240 * 4 + x * 4 + 3] & 0xF8) >> 3) |
+							((screen[y * 240 * 4 + x * 4 + 2] & 0xFC) << 3) |
+							((screen[y * 240 * 4 + x * 4 + 1] & 0xF8) << 8));
 					}
 				}
 
