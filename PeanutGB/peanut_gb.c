@@ -437,6 +437,8 @@ void lcd_draw_line(struct gb_s *gb,
 // GBC: core = 1
 int PeanutGB(unsigned char core, const char *keyboard_name, const char *joystick_name)
 {	
+	printf("Peanut-GB, by Mahyar Koshkouei\n");
+
 	int buttons_file = 0;
 
 	char buttons_buffer[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', 

@@ -63,7 +63,7 @@ int main()
 			redraw = 0;
 
 			system("clear");
-			printf("PeanutGB-RPi02W\n");
+			printf("RPi02W-PeanutGB\n");
 			printf("D-Pad: WSAD Directions\n");
 			printf("Buttons: KJIUHL = ABXYLR\n");
 			printf("Enter/Backspace = Start/Select\n");
