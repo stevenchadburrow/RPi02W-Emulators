@@ -71,7 +71,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 
 <b>NES, SNES, and GBA Emulator Development:</b><br>
 - PICnes is my own NES emulator that was previously made for the PIC32MZ, initial code found <a href="https://github.com/stevenchadburrow/AcolyteHandheld">here</a>.<br>
-- LakeSnes is a candidate for the SNES emulator, found <a href="https://github.com/dinkc64/LakeSnes">here</a>.  I got it to run on the Pi, but it is far too slow at the moment.<br>
+- LakeSnes is an SNES emulator, found <a href="https://github.com/dinkc64/LakeSnes">here</a>.  I got it to run on the Pi, but it is far too slow at the moment.<br>
 - gdkGBA is a public domain GBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>.  It runs well enough at 20 FPS, though it does have graphical glitches in some games.  I'm using Normmatt's open-source BIOS, hosted by Nebuleon <a href="https://github.com/Nebuleon/ReGBA/">here</a>.<br>
 
 <b>Videos:</b><br>
