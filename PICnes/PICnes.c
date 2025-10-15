@@ -5960,6 +5960,25 @@ int main(const int argc, const char **argv)
 
 	fclose(input);
 
+	char tty_name[16];
+
+	system("tty > /home/username/gdkGBA/temp.val");
+	system("echo \"                \" >> /home/username/gdkGBA/temp.val");
+
+	int tty_file = open("/home/username/gdkGBA/temp.val", O_RDWR);
+	read(tty_file, &tty_name, 16);
+	close(tty_file);
+
+	system("rm /home/username/gdkGBA/temp.val");
+
+	for (int i=0; i<16; i++)
+	{
+		if (tty_name[i] <= ' ') tty_name[i] = 0;
+	}
+
+	tty_file = open(tty_name, O_RDWR);
+	ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty
+
 	for (unsigned long i=0; i<640*480; i++)
 	{
 		screen_large_buffer[i] = 0;
@@ -6004,6 +6023,9 @@ int main(const int argc, const char **argv)
 	{ 
 		nes_loop(); // frame rate divider and external interrupt
 	}
+
+	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
+	close(tty_file);
 
 	return 1;
 }
