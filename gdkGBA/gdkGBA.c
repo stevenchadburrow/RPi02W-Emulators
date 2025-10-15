@@ -52,6 +52,8 @@ int fps_wait = 0;
 //#include <SDL2/SDL.h>
 //#include <SDL2/SDL_audio.h>
 
+// arm.h / arm.c
+
 #define ROR(val, s)  (((val) >> (s)) | ((val) << (32 - (s))))
 #define SBIT(op)     ((op & (1 << 20)) ? 1 : 0)
 
@@ -171,6 +173,8 @@ void arm_check_irq();
 
 void arm_reset();
 
+// arm_mem.h
+
 uint8_t *bios;
 uint8_t *wram;
 uint8_t *iwram;
@@ -216,6 +220,8 @@ void arm_writeb_s(uint32_t address, uint8_t value);
 void arm_writeh_s(uint32_t address, uint16_t value);
 void arm_write_s(uint32_t address, uint32_t value);
 
+
+// io.h
 
 typedef union {
     uint32_t w;
@@ -407,9 +413,10 @@ void trigger_irq(uint16_t flag);
 void update_ws();
 
 
+// sound.h / sound.c
 
 #define CPU_FREQ_HZ       16777216
-#define SND_FREQUENCY     32768
+#define SND_FREQUENCY     30581 //32768
 #define SND_CHANNELS      2
 #define SND_SAMPLES       512
 #define SAMP_CYCLES       (CPU_FREQ_HZ / SND_FREQUENCY)
@@ -853,6 +860,7 @@ void sound_clock(uint32_t cycles) {
     }
 }
 
+// timer.h / timer.c
 
 #define TMR_CASCADE  (1 << 2)
 #define TMR_IRQ      (1 << 6)
@@ -911,6 +919,7 @@ void timers_clock(uint32_t cycles) {
     }
 }
 
+// dma.h / dma.c
 
 #define DMA_REP  (1 <<  9)
 #define DMA_32   (1 << 10)
@@ -1019,7 +1028,7 @@ void dma_transfer_fifo(uint8_t ch) {
         trigger_irq(DMA0_FLAG << ch);
 }
 
-
+// io.c
 
 uint8_t io_read(uint32_t address) {
     io_open_bus = false;
@@ -1782,6 +1791,7 @@ void update_ws() {
     }
 }
 
+// arm_mem.c
 
 #define EEPROM_WRITE  2
 #define EEPROM_READ   3
@@ -2665,9 +2675,6 @@ static void arm_cycles_s_to_n() {
     }
 }
 
-/*
- * Execute
- */
 
 //Data Processing (Arithmetic)
 typedef struct {
@@ -5141,9 +5148,6 @@ static void arm_und() {
     arm_int(ARM_VEC_UND, ARM_UND);
 }
 
-/*
- * Decode
- */
 
 static void arm_proc_fill(void (**arr)(), void (*proc)(), int32_t size) {
     int32_t i;
@@ -5540,53 +5544,7 @@ void arm_reset() {
 }
 
 
-/*
-SDL_Window *window;
-SDL_Renderer *renderer;
-SDL_Texture *texture;
-
-int32_t tex_pitch;
-
-void sdl_init();
-void sdl_uninit();
-
-
-void sdl_init() {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-
-    window   = SDL_CreateWindow("gdkGBA", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 480, 320, 0);
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    texture  = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_BGRA8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        240,
-        160);
-
-    tex_pitch = 240 * 4;
-
-    SDL_AudioSpec spec = {
-        .freq     = SND_FREQUENCY, //32KHz
-        .format   = AUDIO_S16SYS, //Signed 16 bits System endiannes
-        .channels = SND_CHANNELS, //Stereo
-        .samples  = SND_SAMPLES, //16ms
-        .callback = sound_mix,
-        .userdata = NULL
-    };
-
-    SDL_OpenAudio(&spec, NULL);
-    SDL_PauseAudio(0);
-}
-
-void sdl_uninit() {
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-
-    SDL_CloseAudio();
-    SDL_Quit();
-}
-*/
+// video.h / video.c
 
 void run_frame();
 
@@ -5955,8 +5913,6 @@ static void vcount_match() {
 void run_frame() {
     disp_stat.w &= ~VBLK_FLAG;
 
-    //SDL_LockTexture(texture, NULL, &screen, &tex_pitch);
-
     for (v_count.w = 0; v_count.w < LINES_TOTAL; v_count.w++) {
         disp_stat.w &= ~(HBLK_FLAG | VCNT_FLAG);
 
@@ -5992,14 +5948,10 @@ void run_frame() {
 		sound_clock(CYC_LINE_TOTAL);
     }
 
-    //SDL_UnlockTexture(texture);
-    //SDL_RenderCopy(renderer, texture, NULL, NULL);
-    //SDL_RenderPresent(renderer);
-
 	sound_buffer_wrap();
 }
 
-
+// main.c
 
 const int64_t max_rom_sz = 32 * 1024 * 1024;
 
@@ -6083,8 +6035,6 @@ int main(int argc, char* argv[]) {
 
 	tty_file = open(tty_name, O_RDWR);
 	ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty
-	
-	
 
 	int screen_file = 0;
 	int screen_handheld = 0;
@@ -6116,16 +6066,14 @@ int main(int argc, char* argv[]) {
 	}
 
 	int buttons_file = 0;
-
-	char buttons_buffer[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', 
-		'0', '0', '0', '0' };
+	char buttons_buffer[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0' };
 
 	int sound_enable = 1;
 	int sound_file = 0;
 	int sound_fragment = 0x0004000A; // 4 blocks, each is 2^A = 2^10 = 1024
 	int sound_stereo = 0;
 	int sound_format = AFMT_S16_BE; // AFMT_U8;
-	int sound_speed = (unsigned int)((61162/2)); // calculations: 61162 = 1024 * (4194304 / 70224) + 1
+	int sound_speed = (unsigned int)(61162/2); // calculations: 61162 = 1024 * (4194304 / 70224) + 1
 
 	sound_file = open("/dev/dsp", O_WRONLY);
 
@@ -6136,7 +6084,6 @@ int main(int argc, char* argv[]) {
 
 	unsigned short sound_array[512*4];
 
-    //sdl_init();
     arm_reset();
 
     bool run = true;
@@ -6145,48 +6092,6 @@ int main(int argc, char* argv[]) {
 
     while (run) {
         run_frame();
-
-/*
-        SDL_Event event;
-
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_KEYDOWN:
-                    switch (event.key.keysym.sym) {
-                        case SDLK_UP:     key_input.w &= ~BTN_U;   break;
-                        case SDLK_DOWN:   key_input.w &= ~BTN_D;   break;
-                        case SDLK_LEFT:   key_input.w &= ~BTN_L;   break;
-                        case SDLK_RIGHT:  key_input.w &= ~BTN_R;   break;
-                        case SDLK_a:      key_input.w &= ~BTN_A;   break;
-                        case SDLK_s:      key_input.w &= ~BTN_B;   break;
-                        case SDLK_q:      key_input.w &= ~BTN_LT;  break;
-                        case SDLK_w:      key_input.w &= ~BTN_RT;  break;
-                        case SDLK_TAB:    key_input.w &= ~BTN_SEL; break;
-                        case SDLK_RETURN: key_input.w &= ~BTN_STA; break;
-                        default:                                   break;
-                    }
-                break;
-
-                case SDL_KEYUP:
-                    switch (event.key.keysym.sym) {
-                        case SDLK_UP:     key_input.w |= BTN_U;   break;
-                        case SDLK_DOWN:   key_input.w |= BTN_D;   break;
-                        case SDLK_LEFT:   key_input.w |= BTN_L;   break;
-                        case SDLK_RIGHT:  key_input.w |= BTN_R;   break;
-                        case SDLK_a:      key_input.w |= BTN_A;   break;
-                        case SDLK_s:      key_input.w |= BTN_B;   break;
-                        case SDLK_q:      key_input.w |= BTN_LT;  break;
-                        case SDLK_w:      key_input.w |= BTN_RT;  break;
-                        case SDLK_TAB:    key_input.w |= BTN_SEL; break;
-                        case SDLK_RETURN: key_input.w |= BTN_STA; break;
-                        default:                                  break;
-                    }
-                break;
-
-                case SDL_QUIT: run = false; break;
-            }
-        }
-*/
 
 		key_input.w |= BTN_U;
 		key_input.w |= BTN_D;
@@ -6305,7 +6210,7 @@ int main(int argc, char* argv[]) {
 
 		if (fps_wait > 0)
 		{
-			while (clock() < previous_clock + 16667 * fps_wait) { }
+			while (clock() < previous_clock + 16743 * fps_wait) { }
 			previous_clock = clock();
 		}
 
@@ -6372,7 +6277,6 @@ int main(int argc, char* argv[]) {
 		}
     }
 
-    //sdl_uninit();
     arm_uninit();
 
 	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
