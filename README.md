@@ -4,7 +4,7 @@
 <a href="https://github.com/deltabeard/Peanut-GB">Link to Original PeanutGB Repo</a><br>
 
 <b>Purpose:</b><br>
-This project is to introduce myself to how the Raspberry Pi Zero 2W works, and further my knowledge on 'modern' microprocessors running Linux.  The immediate goal is to make a handheld device that plays Gameboy and Gameboy Color games that can also connect to the television.  Other goals are to have an NES, SNES, and GBA emulator for this system.  I'm using PeanutGB first because I am familiar with it, and I wanted to port something well-designed, well-tested, and that would have no problem running on this device.<br>
+This project is to introduce myself to how the Raspberry Pi Zero 2W works, and further my knowledge on 'modern' microprocessors running Linux.  The immediate goal is to make a handheld device that plays Gameboy and Gameboy Color games that can also connect to the television.  Other goals are to have an NES, SNES, and GBA emulators for this system.  I'm using PeanutGB first because I am familiar with it, and I wanted to port something well-designed, well-tested, and that would have no problem running on this device.<br>
 
 <b>Connecting an ILI9341 LCD in SPI mode using pins:</b><br>
 CS = GPIO8 / Pin24<br>
@@ -69,9 +69,8 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 - In order to send audio data, PeanutGB will stream directly to ``` /dev/dsp ```.<br>
 - Warning: ``` /dev/dsp ``` is only available after ``` sudo modprobe snd-pcm-oss ```.<br>
 
-<b>NES, SNES, and GBA Emulator Development:</b><br>
+<b>NES and GBA Emulator Development:</b><br>
 - PICnes is my own NES emulator that was previously made for the PIC32MZ, initial code found <a href="https://github.com/stevenchadburrow/AcolyteHandheld">here</a>.<br>
-- LakeSnes is an SNES emulator, found <a href="https://github.com/dinkc64/LakeSnes">here</a>.  I got it to run on the Pi, but it is far too slow at the moment.<br>
 - gdkGBA is a public domain GBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>.  It runs well enough at 20 FPS, though it does have graphical glitches in some games.  I'm using Normmatt's open-source BIOS, hosted by Nebuleon <a href="https://github.com/Nebuleon/ReGBA/">here</a>.<br>
 
 <b>Videos:</b><br>
