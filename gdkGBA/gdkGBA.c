@@ -43,6 +43,10 @@ For more information, please refer to <http://unlicense.org/>
 #include <linux/kd.h>
 #include <termios.h>
 
+// If you run this program with 'nice -n -20 ...'
+// it seems to run at 45 FPS generally.
+// Otherwise, keep it at 20 FPS.
+
 int fps_rate = 20; // values: 60, 45, 30, 20
 int fps_counter = 0;
 int fps_graphics = 0;
