@@ -41,20 +41,29 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
    audio_pwm_mode=2
    disable_audio_dither
    ```
-8) ``` sudo nano /boot/firmware/cmdline.txt ```, then add to the end of the first line:
+8) Optionally you can also overclock the Pi by also including:
+   ```
+   arm_freq=1200
+   core_freq=400
+   over_voltage=0
+   gpu_freq=400
+   sdram_freq=450
+   over_voltage_sdram=0
+   ```
+9) ``` sudo nano /boot/firmware/cmdline.txt ```, then add to the end of the first line:
    ```
    video=HDMI-A-1:640x480M@60,margin_top=20,margin_bottom=20,margin_left=20,margin_right=20
    ```
-9) ``` sudo nano /etc/rc.local ```, and if file already exists, just add ``` sudo modprobe snd-pcm-oss ```.  Else, add these lines to the file:
+10) ``` sudo nano /etc/rc.local ```, and if file already exists, just add ``` sudo modprobe snd-pcm-oss ```.  Else, add these lines to the file:
    ```
    #!/bin/sh
    sudo modprobe snd-pcm-oss
    exit 0
    ```
-8) ``` sudo chmod +rwx /etc/rc.local ; sudo chown root /etc/rc.local ``` to give permissions to file.<br>
-9) ``` sudo reboot ``` for changes to take effect.<br>
-10) ``` cd ~/Emulators ; sh install.sh ```, to compile all C files.<br>
-11) To run: ``` cd ~/Emulators ; sh run.sh ```, or to auto run on boot: ``` echo 'cd ~/Emulators/ ; sh run.sh' >> ~/.bashrc ```.<br>
+11) ``` sudo chmod +rwx /etc/rc.local ; sudo chown root /etc/rc.local ``` to give permissions to file.<br>
+12) ``` sudo reboot ``` for changes to take effect.<br>
+13) ``` cd ~/Emulators ; sh install.sh ```, to compile all C files.<br>
+14) To run: ``` cd ~/Emulators ; sh run.sh ```, or to auto run on boot: ``` echo 'cd ~/Emulators/ ; sh run.sh' >> ~/.bashrc ```.<br>
 
 <b>Features:</b><br>
 - If HDMI is plugged in on boot, games will be played through HDMI.  Else, games will be played through LCD.<br>
