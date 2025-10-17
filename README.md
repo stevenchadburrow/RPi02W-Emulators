@@ -75,9 +75,9 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 <a href="https://youtube.com/shorts/ARCSKjPH7FA?si=rqlXaKl9zKCdxzBo">Youtube Short of me playing Tobu Tobu Girl DX</a><br>
 
 <b>Pictures:</b><br>
-<img src="Images/RPi02W-PeanutGB-Prelim-LCD.jpg"><br>
-<img src="Images/RPi02W-PeanutGB-Prelim-HDMI.jpg"><br>
-<img src="Images/RPi02W-PeanutGB-Prelim-PCB.png"><br>
-<img src="Images/RPi02W-PeanutGB-Prelim-Case.png"><br>
+<img src="Images/RPi02W-Prelim-LCD.jpg"><br>
+<img src="Images/RPi02W-Prelim-HDMI.jpg"><br>
+<img src="Images/RPi02W-Prelim-PCB.png"><br>
+<img src="Images/RPi02W-Prelim-Case.png"><br>
 
 
