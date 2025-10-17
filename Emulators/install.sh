@@ -11,7 +11,7 @@ gcc -O3 -o gdkGBA/gdkGBA.o gdkGBA/gdkGBA.c
 
 echo "Installed PICnes, PeanutGB, and gdkGBA!"
 echo "To manually play: sh ~/Emulators/run.sh"
-echo "To automatically play: echo 'sh ~/Emulators/run.sh' >> ~/.bashrc"
+echo "To automatically play: echo 'cd Emulators ; sh run.sh' >> ~/.bashrc"
 echo "To reboot: sudo reboot"
 
 
