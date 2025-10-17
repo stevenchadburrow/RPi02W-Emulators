@@ -71,6 +71,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 - Has additional features such as fast-forward button, turbo buttons, and save/load RAM to external file.<br>
 - All files here are compiled using ``` gcc ``` and only uses standard Linux libraries.<br>
 - In order to draw to the screen, each emulator will write directly to ``` /dev/fb0 ```.<br>
+- In order to get on-board button state, each emulator will read directly from GPIO pins using the ``` pigpio ``` library.<br>
 - In order to get keyboard events, each emulator will read directly from ``` /dev/input/event0 ```.<br>
 - In order to get joystick events, each emulator will read directly from ``` /dev/input/js0 ```.<br>
 - In order to send audio data, each emulator will stream directly to ``` /dev/dsp ```.<br>
