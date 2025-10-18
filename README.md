@@ -44,11 +44,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 8) Optionally you can also overclock the Pi by also including:
    ```
    arm_freq=1200
-   core_freq=400
-   over_voltage=0
-   gpu_freq=400
-   sdram_freq=450
-   over_voltage_sdram=0
+   over_voltage=2
    ```
 9) ``` sudo nano /boot/firmware/cmdline.txt ```, then add to the end of the first line:
    ```
