@@ -285,6 +285,12 @@ io_reg bg_refye[4];
 io_reg bg_refxi[4];
 io_reg bg_refyi[4];
 
+io_reg win0_h;
+io_reg win1_h;
+
+io_reg win0_v;
+io_reg win1_v;
+
 io_reg win_in;
 io_reg win_out;
 
@@ -1056,10 +1062,10 @@ uint8_t io_read(uint32_t address) {
         case 0x0400000e: return bg[3].ctrl.b.b0      & 0xff;
         case 0x0400000f: return bg[3].ctrl.b.b1      & 0xff;
 
-        case 0x04000048: return win_in.b.b0          & 0x3f;
-        case 0x04000049: return win_in.b.b1          & 0x3f;
-        case 0x0400004a: return win_out.b.b0         & 0x3f;
-        case 0x0400004b: return win_out.b.b1         & 0x3f;
+        case 0x04000048: return win_in.b.b0          & 0xff;
+        case 0x04000049: return win_in.b.b1          & 0xff;
+        case 0x0400004a: return win_out.b.b0         & 0xff;
+        case 0x0400004b: return win_out.b.b1         & 0xff;
 
         case 0x04000050: return bld_cnt.b.b0         & 0xff;
         case 0x04000051: return bld_cnt.b.b1         & 0x3f;
@@ -1399,6 +1405,16 @@ void io_write(uint32_t address, uint8_t value) {
             bg_refye[3].b.b3 =
             bg_refyi[3].b.b3 = value;
         break;
+
+		case 0x04000040: win0_h.b.b0          =  value; break;
+        case 0x04000041: win0_h.b.b1          =  value; break;
+        case 0x04000042: win1_h.b.b0          =  value; break;
+        case 0x04000043: win1_h.b.b1          =  value; break;
+
+        case 0x04000044: win0_v.b.b0          =  value; break;
+        case 0x04000045: win0_v.b.b1          =  value; break;
+        case 0x04000046: win1_v.b.b0          =  value; break;
+        case 0x04000047: win1_v.b.b1          =  value; break;
 
         case 0x04000048: win_in.b.b0          =  value; break;
         case 0x04000049: win_in.b.b1          =  value; break;
@@ -5564,11 +5580,128 @@ uint8_t screen[240*160*4];
 static const uint8_t x_tiles_lut[16] = { 1, 2, 4, 8, 2, 4, 4, 8, 1, 1, 2, 4, 0, 0, 0, 0 };
 static const uint8_t y_tiles_lut[16] = { 1, 2, 4, 8, 1, 1, 2, 4, 2, 4, 4, 8, 0, 0, 0, 0 };
 
+void draw_pixel_pal(uint32_t addr, uint32_t pal)
+{
+	*(uint32_t *)(screen + addr) = palette[pal];
+}
+
+void draw_pixel_col(uint32_t addr, uint32_t col)
+{
+	*(uint32_t *)(screen + addr) = col;
+}
+
+void add_pixel_pal(uint32_t addr, uint32_t pal)
+{
+	uint32_t mix = 0x000000FF |
+		(((screen[addr+1] + ((palette[pal] & 0x0000FF00) >> 8)) >> 1) << 8) |
+		(((screen[addr+2] + ((palette[pal] & 0x00FF0000) >> 16)) >> 1) << 16) |
+		(((screen[addr+3] + ((palette[pal] & 0xFF000000) >> 24)) >> 1) << 24);
+
+	*(uint32_t *)(screen + addr) = mix;
+}
+
+void add_pixel_col(uint32_t addr, uint32_t col)
+{
+	uint32_t mix = 0x000000FF |
+		(((screen[addr+1] + ((col & 0x0000FF00) >> 8)) >> 1) << 8) |
+		(((screen[addr+2] + ((col & 0x00FF0000) >> 16)) >> 1) << 16) |
+		(((screen[addr+3] + ((col & 0xFF000000) >> 24)) >> 1) << 24);
+
+	*(uint32_t *)(screen + addr) = mix;
+}
+
+#define WIN0_ENB     (1 << 13)
+#define WIN1_ENB     (1 << 14)
+#define WINOBJ_ENB   (1 << 15)
+#define WINANY_ENB  (WIN0_ENB | WIN1_ENB | WINOBJ_ENB)
+
+static int win_show_y(uint8_t layer, uint8_t y) {
+    uint8_t mask = 1 << layer;
+
+    bool win0_in = win_in.b.b0 & mask;
+    bool win1_in = win_in.b.b1 & mask;
+
+    bool winobj_in = win_out.b.b1 & mask;
+
+    bool win_out_ = win_out.b.b0 & mask;
+
+    bool inside_win0   = false;
+    bool inside_win1   = false;
+    bool inside_winobj = false;
+
+    if (disp_cnt.w & WIN0_ENB) {
+        inside_win0 = y >= win0_v.b.b1 &&
+                      y <  win0_v.b.b0;
+    }
+
+    if (disp_cnt.w & WIN1_ENB) {
+        inside_win1 = y >= win1_v.b.b1 &&
+                      y <  win1_v.b.b0;
+    }
+
+    if (disp_cnt.w & WINOBJ_ENB) {
+        //This need to be checked per X pixel as it isn't a range,
+        //so in this case we should aways return true so the X check is made
+        inside_winobj = true;
+    }
+
+    if (win0_in && inside_win0) return 2;
+    if (win1_in && inside_win1) return 2;
+
+    if (winobj_in && inside_winobj) return 2;
+
+    if (win_out_ && !(inside_win0 || inside_win1 || inside_winobj)) return 1;
+
+    return win_out_ ? 2 : 0;
+}
+
+static int win_show_x(uint8_t layer, uint8_t x, int prev) {
+    if (prev != 2) return prev;
+
+    uint8_t mask = 1 << layer;
+
+    bool win0_in = win_in.b.b0 & mask;
+    bool win1_in = win_in.b.b1 & mask;
+
+    bool winobj_in = win_out.b.b1 & mask;
+
+    bool win_out_ = win_out.b.b0 & mask;
+
+    bool inside_win0   = false;
+    bool inside_win1   = false;
+    bool inside_winobj = false;
+
+    if (disp_cnt.w & WIN0_ENB) {
+        inside_win0 = x >= win0_h.b.b1 &&
+                      x <  win0_h.b.b0;
+    }
+
+    if (disp_cnt.w & WIN1_ENB) {
+        inside_win1 = x >= win1_h.b.b1 &&
+                      x <  win1_h.b.b0;
+    }
+
+    //if (disp_cnt.w & WINOBJ_ENB) {
+    //    inside_winobj = layerobj[x];
+    //}
+
+    if (win0_in && inside_win0) return 1;
+    if (win1_in && inside_win1) return 1;
+
+    //if (winobj_in && inside_winobj) return 1;
+
+    if (win_out_ && !(inside_win0 || inside_win1 || inside_winobj)) return 1;
+
+    return 0;
+}
+
 static void render_obj(uint8_t prio) {
     if (!(disp_cnt.w & OBJ_ENB)) return;
 
     uint8_t obj_index;
     uint32_t offset = 0x3f8;
+
+	uint8_t eff = (bld_cnt.w >> 6) & 3;
 
     uint32_t surf_addr = v_count.w * 240 * 4;
 
@@ -5658,6 +5791,7 @@ static void render_obj(uint8_t prio) {
                 ox += pa,
                 oy += pc,
                 address += 4) {
+
                 if (obj_x + x < 0) continue;
                 if (obj_x + x >= 240) break;
 
@@ -5688,7 +5822,13 @@ static void render_obj(uint8_t prio) {
 
                 uint32_t pal_addr = 0x100 | pal_idx | (!is_256 ? chr_pal * 16 : 0);
 
-                if (pal_idx) *(uint32_t *)(screen + address) = palette[pal_addr];
+                if (pal_idx)
+				{
+					// *(uint32_t *)(screen + address) = palette[pal_addr];
+					//if (eff == 1) add_pixel_pal(address, pal_addr);
+					//else draw_pixel_pal(address, pal_addr);
+					draw_pixel_pal(address, pal_addr); // looks better without blending on objects?
+				}
             }
         }
     }
@@ -5698,6 +5838,8 @@ static const uint8_t bg_enb[3] = { 0xf, 0x7, 0xc };
 
 static void render_bg() {
     uint8_t mode = disp_cnt.w & 7;
+
+	uint8_t eff = (bld_cnt.w >> 6) & 3;
 
     uint32_t surf_addr = v_count.w * 240 * 4;
 
@@ -5711,8 +5853,20 @@ static void render_bg() {
 
             for (prio = 3; prio >= 0; prio--) {
                 for (bg_idx = 3; bg_idx >= 0; bg_idx--) {
+
+					// check windowing here
+
+					if ((bg[bg_idx].ctrl.w & 3) != prio) continue;
+
                     if (!(enb & (1 << bg_idx))) continue;
-                    if ((bg[bg_idx].ctrl.w & 3) != prio) continue;
+
+					bool win = disp_cnt.w & WINANY_ENB;
+					int win_show = 1;
+
+					if (win) {
+						win_show = win_show_y(bg_idx, v_count.w);
+						if (win_show == 0) continue;
+					}
 
                     uint32_t chr_base  = ((bg[bg_idx].ctrl.w >>  2) & 0x3)  << 14;
                     bool     is_256    =  (bg[bg_idx].ctrl.w >>  7) & 0x1;
@@ -5746,6 +5900,11 @@ static void render_bg() {
                             ox += pa,
                             oy += pc,
                             address += 4) {
+
+							if (win) {
+								if (win_show_x(bg_idx, x, win_show) == 0) continue;
+							}
+
                             int16_t tmx = ox >> 11;
                             int16_t tmy = oy >> 11;
 
@@ -5766,7 +5925,12 @@ static void render_bg() {
 
                             uint16_t pal_idx = vram[vram_addr];
 
-                            if (pal_idx) *(uint32_t *)(screen + address) = palette[pal_idx];
+                            if (pal_idx)
+							{
+								// *(uint32_t *)(screen + address) = palette[pal_idx];
+								if (eff == 1) add_pixel_pal(address, pal_idx);
+								else draw_pixel_pal(address, pal_idx);
+							}
                         }
                     } else {
                         uint16_t oy     = v_count.w + bg[bg_idx].yofs.w;
@@ -5776,6 +5940,11 @@ static void render_bg() {
                         uint8_t x;
 
                         for (x = 0; x < 240; x++) {
+
+							if (win) {
+								if (win_show_x(bg_idx, x, win_show) == 0) continue;
+							}
+
                             uint16_t ox     = x + bg[bg_idx].xofs.w;
                             uint16_t tmx    = ox >> 3;
                             uint16_t scrn_x = (tmx >> 5) & 1;
@@ -5818,7 +5987,12 @@ static void render_bg() {
 
                             uint32_t pal_addr = pal_idx | pal_base;
 
-                            if (pal_idx) *(uint32_t *)(screen + address) = palette[pal_addr];
+                            if (pal_idx)
+							{
+								// *(uint32_t *)(screen + address) = palette[pal_addr];
+								if (eff == 1) add_pixel_pal(address, pal_addr);
+								else draw_pixel_pal(address, pal_addr);
+							}
 
                             address += 4;
                         }
@@ -5847,7 +6021,9 @@ static void render_bg() {
                 rgba |= (g | (g >> 5)) << 16;
                 rgba |= (b | (b >> 5)) << 24;
 
-                *(uint32_t *)(screen + surf_addr) = rgba;
+                // *(uint32_t *)(screen + surf_addr) = rgba;
+				if (eff == 1) add_pixel_col(surf_addr, rgba);
+				else draw_pixel_col(surf_addr, rgba);
 
                 surf_addr += 4;
 
@@ -5863,7 +6039,9 @@ static void render_bg() {
             for (x = 0; x < 240; x++) {
                 uint8_t pal_idx = vram[frm_addr++];
 
-                *(uint32_t *)(screen + surf_addr) = palette[pal_idx];
+                // *(uint32_t *)(screen + surf_addr) = palette[pal_idx];
+				if (eff == 1) add_pixel_pal(surf_addr, pal_idx);
+				else draw_pixel_pal(surf_addr, pal_idx);
 
                 surf_addr += 4;
             }
@@ -5879,10 +6057,14 @@ static void render_line() {
     uint32_t addr_e = addr_s + 240 * 4;
 
     for (addr = addr_s; addr < addr_e; addr += 0x10) {
-        *(uint32_t *)(screen + (addr | 0x0)) = palette[0];
-        *(uint32_t *)(screen + (addr | 0x4)) = palette[0];
-        *(uint32_t *)(screen + (addr | 0x8)) = palette[0];
-        *(uint32_t *)(screen + (addr | 0xc)) = palette[0];
+        // *(uint32_t *)(screen + (addr | 0x0)) = palette[0];
+        // *(uint32_t *)(screen + (addr | 0x4)) = palette[0];
+        // *(uint32_t *)(screen + (addr | 0x8)) = palette[0];
+        // *(uint32_t *)(screen + (addr | 0xc)) = palette[0];
+		draw_pixel_pal((addr|0x0), 0);
+		draw_pixel_pal((addr|0x4), 0);
+		draw_pixel_pal((addr|0x8), 0);
+		draw_pixel_pal((addr|0xC), 0);
     }
 
     if ((disp_cnt.w & 7) > 2) {
