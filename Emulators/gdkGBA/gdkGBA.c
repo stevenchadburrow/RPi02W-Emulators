@@ -5846,6 +5846,7 @@ static void render_bg() {
     uint8_t mode = disp_cnt.w & 7;
 
 	uint8_t eff = (bld_cnt.w >> 6) & 3;
+	uint8_t blending = 0;
 
     uint32_t surf_addr = v_count.w * 240 * 4;
 
@@ -5873,6 +5874,8 @@ static void render_bg() {
 						win_show = win_show_y(bg_idx, v_count.w);
 						if (win_show == 0) continue;
 					}
+					
+					blending = bld_cnt.b.b0 & (1 << bg_idx);
 
                     uint32_t chr_base  = ((bg[bg_idx].ctrl.w >>  2) & 0x3)  << 14;
                     bool     is_256    =  (bg[bg_idx].ctrl.w >>  7) & 0x1;
@@ -5934,7 +5937,7 @@ static void render_bg() {
                             if (pal_idx)
 							{
 								// *(uint32_t *)(screen + address) = palette[pal_idx];
-								if (eff == 1) add_pixel_pal(address, pal_idx);
+								if (eff == 1 && blending != 0) add_pixel_pal(address, pal_idx);
 								else draw_pixel_pal(address, pal_idx);
 							}
                         }
@@ -5996,7 +5999,7 @@ static void render_bg() {
                             if (pal_idx)
 							{
 								// *(uint32_t *)(screen + address) = palette[pal_addr];
-								if (eff == 1) add_pixel_pal(address, pal_addr);
+								if (eff == 1 && blending != 0) add_pixel_pal(address, pal_addr);
 								else draw_pixel_pal(address, pal_addr);
 							}
 
@@ -6028,8 +6031,7 @@ static void render_bg() {
                 rgba |= (b | (b >> 5)) << 24;
 
                 // *(uint32_t *)(screen + surf_addr) = rgba;
-				if (eff == 1) add_pixel_col(surf_addr, rgba);
-				else draw_pixel_col(surf_addr, rgba);
+				draw_pixel_col(surf_addr, rgba);
 
                 surf_addr += 4;
 
@@ -6046,8 +6048,7 @@ static void render_bg() {
                 uint8_t pal_idx = vram[frm_addr++];
 
                 // *(uint32_t *)(screen + surf_addr) = palette[pal_idx];
-				if (eff == 1) add_pixel_pal(surf_addr, pal_idx);
-				else draw_pixel_pal(surf_addr, pal_idx);
+				draw_pixel_pal(surf_addr, pal_idx);
 
                 surf_addr += 4;
             }
