@@ -52,10 +52,10 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
    ```
 10) ``` sudo nano /etc/rc.local ```, and if file already exists, just add ``` sudo modprobe snd-pcm-oss ```.  Else, add these lines to the file:
     ```
-   #!/bin/sh
-   sudo modprobe snd-pcm-oss
-   exit 0
-   ```
+    #!/bin/sh
+    sudo modprobe snd-pcm-oss
+    exit 0
+    ```
 11) ``` sudo chmod +rwx /etc/rc.local ; sudo chown root /etc/rc.local ``` to give permissions to file.<br>
 12) ``` sudo reboot ``` for changes to take effect.<br>
 13) ``` cd ~/Emulators ; sh install.sh ```, to compile all C files.<br>
