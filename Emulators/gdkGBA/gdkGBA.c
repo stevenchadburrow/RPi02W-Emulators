@@ -1,5 +1,6 @@
 // gdkGBA by gdkchan
 // https://github.com/gdkchan/gdkGBA
+// https://github.com/jakibaki/gdkGBA
 
 /*
 This is free and unencumbered software released into the public domain.
