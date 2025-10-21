@@ -76,7 +76,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 <b>NES, GB, and GBA Emulator Development:</b><br>
 - PICnes is my own NES emulator that was previously made for the PIC32MZ, initial code found <a href="https://github.com/stevenchadburrow/AcolyteHandheld">here</a>.<br>
 - PeanutGB is an MIT licensed GB/GBC emulator, found <a href="https://github.com/deltabeard/Peanut-GB">here</a>. The PeanutGB emulator used is actually a version by 'froggestspirit', found <a href="https://github.com/froggestspirit/Peanut-GB">here</a>, in order to play Gameboy Color games.<br>
-- gdkGBA is a public domain GBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>.  I have been altering it by copying code from a version by 'jakibaki', found <a href="https://github.com/jakibaki/gdkGBA">here</a>.  It runs well enough at 20 FPS.  Many graphical glitches have been fixed.  The audio still needs a little bit of work.  I'm using Normmatt's open-source BIOS, hosted by Nebuleon <a href="https://github.com/Nebuleon/ReGBA/">here</a>.<br>
+- gdkGBA is a public domain GBA emulator, found <a href="https://github.com/gdkchan/gdkGBA">here</a>.  I have been altering it by copying code from a version by 'jakibaki', found <a href="https://github.com/jakibaki/gdkGBA">here</a>.  It runs well enough at 20 FPS.  I'm using Normmatt's open-source BIOS, hosted by Nebuleon <a href="https://github.com/Nebuleon/ReGBA/">here</a>.<br>
 
 <b>Videos:</b><br>
 <a href="https://youtube.com/shorts/ARCSKjPH7FA?si=rqlXaKl9zKCdxzBo">Youtube Short of me playing Tobu Tobu Girl DX</a><br>
