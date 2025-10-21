@@ -864,8 +864,13 @@ void sound_clock(uint32_t cycles) {
         samp_psg_l >>= psg_rsh_lut[(snd_pcm_vol.w >> 0) & 3];
         samp_psg_r >>= psg_rsh_lut[(snd_pcm_vol.w >> 0) & 3];
 
-        snd_buffer[snd_cur_write++ & BUFF_SAMPLES_MSK] = clip(samp_psg_l + samp_pcm_l);
-        snd_buffer[snd_cur_write++ & BUFF_SAMPLES_MSK] = clip(samp_psg_r + samp_pcm_r);
+        snd_buffer[snd_cur_write & BUFF_SAMPLES_MSK] = clip(samp_psg_l + samp_pcm_l);
+		snd_cur_write++;
+		if (snd_cur_write >= BUFF_SAMPLES) snd_cur_write -= BUFF_SAMPLES;
+
+        snd_buffer[snd_cur_write & BUFF_SAMPLES_MSK] = clip(samp_psg_r + samp_pcm_r);
+		snd_cur_write++;
+		if (snd_cur_write >= BUFF_SAMPLES) snd_cur_write -= BUFF_SAMPLES;
 
         snd_cycles -= SAMP_CYCLES;
     }
@@ -6135,7 +6140,7 @@ void run_frame() {
 		sound_clock(CYC_LINE_TOTAL);
     }
 
-	sound_buffer_wrap();
+	//sound_buffer_wrap();
 }
 
 // main.c
@@ -6362,19 +6367,25 @@ int main(int argc, char* argv[]) {
 				sound_temp = (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // left channel
 
 				snd_cur_play++;
+				if (snd_cur_play >= BUFF_SAMPLES) snd_cur_play -= BUFF_SAMPLES;
 
 				sound_temp += (unsigned short)((snd_buffer[snd_cur_play & BUFF_SAMPLES_MSK] >> 2)); // right channel
 
-				snd_cur_play++; 
+				snd_cur_play++;
+				if (snd_cur_play >= BUFF_SAMPLES) snd_cur_play -= BUFF_SAMPLES;
 
 				sound_array[i] = (unsigned char)((unsigned short)(sound_temp) + 0x8000); // signed
 			}
 
 			//Avoid desync between the Play cursor and the Write cursor
-			snd_cur_play += ((int32_t)(snd_cur_write - snd_cur_play) >> 8) & ~1;
+			//snd_cur_play += ((int32_t)(snd_cur_write - snd_cur_play) >> 8) & ~1;
 
 			// write audio to /dev/fb0
 			write(sound_file, &sound_array, 512*2*fps_audio); // AUDIO_SAMPLES
+
+			// reset
+			snd_cur_play = 0;
+			snd_cur_write = 0;
 		}
 
 		if (fps_wait > 0)
