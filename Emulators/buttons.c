@@ -24,6 +24,8 @@ int main()
         return 0;
     }
 
+	//gpioCfgInterfaces(PI_DISABLE_FIFO_IF | PI_DISABLE_SOCK_IF | PI_LOCALHOST_SOCK_IF); // stops popup messages?
+
 	gpioSetMode(4, PI_INPUT); // du
 	gpioSetPullUpDown(4, PI_PUD_UP);
 	gpioSetMode(5, PI_INPUT); // dr?

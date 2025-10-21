@@ -12,7 +12,7 @@ int main()
 	int total = 0;
 	char list[1000][64];
 
-	system("ls ROMS > list.val");
+	system("ls -R --group-directories-first ROMS > list.val");
 	
 	FILE *input = NULL;
 
@@ -76,10 +76,20 @@ int main()
 
 			for (int i=select-5; i<=select+5; i++)
 			{
-				if (i < 0) printf(" \n");
-				else if (i >= total) printf(" \n");
-				else if (i == select) printf(">%s\n", list[select]);
-				else printf(" %s\n", list[i]);
+				if (i < 0) printf("  \n");
+				else if (i >= total) printf("  \n");
+				else if (i == select)
+				{
+					if (strstr(list[select], ":") != NULL) printf(">:%s\n", list[select]);
+					else if (strstr(list[select], ".") == NULL) printf(">-%s-\n", list[select]);
+					else printf("> %s\n", list[select]);
+				}
+				else
+				{
+					if (strstr(list[i], ":") != NULL) printf(" :%s\n", list[i]);
+					else if (strstr(list[i], ".") == NULL) printf(" -%s-\n", list[i]);
+					else printf("  %s\n", list[i]);
+				}
 			}
 		}
 
@@ -89,10 +99,7 @@ int main()
 		read(file, &buffer, 13);
 		close(file);
 
-		if (buffer[5] == '1' ||
-			buffer[6] == '1' ||
-			buffer[7] == '1' ||
-			buffer[8] == '1') // regular buttons
+		if (buffer[7] == '1') // regular buttons
 		{
 			buttons_choice = 1; // keyboard
 		}
@@ -103,10 +110,7 @@ int main()
 		read(file, &buffer, 13);
 		close(file);
 
-		if (buffer[5] == '1' ||
-			buffer[6] == '1' ||
-			buffer[7] == '1' ||
-			buffer[8] == '1') // regular buttons
+		if (buffer[7] == '1') // regular buttons
 		{
 			buttons_choice = 2; // joystick
 		}
@@ -117,15 +121,23 @@ int main()
 		read(file, &buffer, 13);
 		close(file);
 
-		if (buffer[5] == '1' ||
-			buffer[6] == '1' ||
-			buffer[7] == '1' ||
-			buffer[8] == '1') // regular buttons
+		if (buffer[7] == '1') // regular buttons
 		{
 			buttons_choice = 0; // onboard buttons
 		}
 
 		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
+
+/*
+		// for testing on desktop
+		char temp = 0;
+		scanf("%c", &temp);
+		if (temp == 'w') button[1] = '1';
+		else if (temp == 's') button[2] = '1';
+		else if (temp == 'k') button[7] = '1';
+		else if (temp == 'j') button[8] = '1';
+		prev_clock = clock() - 100000;
+*/
 
 		if (button[0] == '1') // menu
 		{
@@ -149,45 +161,75 @@ int main()
 
 			redraw = 1;
 		}
-		else if (button[5] == '1' ||
-			button[6] == '1' ||
-			button[7] == '1' ||
-			button[8] == '1') // regular buttons
+		else if (button[7] == '1') // A
 		{
 			char command[512];
 			for (int i=0; i<512; i++) command[i] = 0;
+
+			char path[256];
+			for (int i=0; i<256; i++) path[i] = 0;
+			
+			for (int i=select; i>=0; i--)
+			{
+				if (strstr(list[i], ":") != NULL)
+				{
+					sprintf(path, "%s", list[i]);
+
+					int remove = 0;
+
+					for (int j=0; j<256; j++)
+					{
+						if (path[j] == ':') remove = 1;
+
+						if (remove > 0)
+						{
+							path[j] = 0;
+						}
+					}
+
+					break;
+				}
+			}
 
 			if (strstr(list[select], ".NES") != NULL ||
 				strstr(list[select], ".nes") != NULL)
 			{
 				if (buttons_choice == 0) // onboard buttons
 				{
-					sprintf(command, "echo './PICnes/PICnes.o ROMS/%s buttons.val' > game.sh", list[select]);
+					sprintf(command, "echo './PICnes/PICnes.o %s/%s buttons.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 1) // keyboard
 				{
-					sprintf(command, "echo './PICnes/PICnes.o ROMS/%s keyboard.val' > game.sh", list[select]);
+					sprintf(command, "echo './PICnes/PICnes.o %s/%s keyboard.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 2) // joystick
 				{
-					sprintf(command, "echo './PICnes/PICnes.o ROMS/%s joystick.val' > game.sh", list[select]);
+					sprintf(command, "echo './PICnes/PICnes.o %s/%s joystick.val' > game.sh", path, list[select]);
 				}
+
+				system(command);
+
+				running = 0;	
 			}
 			else if (strstr(list[select], ".GBA") != NULL ||
 				strstr(list[select], ".gba") != NULL) // this must come before check for .GB or .gb!!!
 			{
 				if (buttons_choice == 0) // onboard buttons
 				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o ROMS/%s buttons.val' > game.sh", list[select]);
+					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s buttons.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 1) // keyboard
 				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o ROMS/%s keyboard.val' > game.sh", list[select]);
+					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s keyboard.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 2) // joystick
 				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o ROMS/%s joystick.val' > game.sh", list[select]);
+					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s joystick.val' > game.sh", path, list[select]);
 				}
+
+				system(command);
+
+				running = 0;
 			}
 			else if (strstr(list[select], ".GB") != NULL ||
 				strstr(list[select], ".gb") != NULL ||
@@ -196,21 +238,47 @@ int main()
 			{
 				if (buttons_choice == 0) // onboard buttons
 				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o ROMS/%s buttons.val' > game.sh", list[select]);
+					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s buttons.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 1) // keyboard
 				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o ROMS/%s keyboard.val' > game.sh", list[select]);
+					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s keyboard.val' > game.sh", path, list[select]);
 				}
 				else if (buttons_choice == 2) // joystick
 				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o ROMS/%s joystick.val' > game.sh", list[select]);
+					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s joystick.val' > game.sh", path, list[select]);
 				}
-			}
-	
-			system(command);
 
-			running = 0;
+				system(command);
+
+				running = 0;
+			}
+			else // directory?
+			{
+				sprintf(command, "%s:", list[select]);
+
+				for (int i=0; i<1000; i++)
+				{
+					if (strstr(list[i], command) != NULL)
+					{
+						select = i;
+
+						break;
+					}
+				}
+
+				prev_clock = clock();
+
+				redraw = 1;
+			}
+		}
+		else if (button[8] == '1') // B
+		{
+			prev_clock = clock();
+
+			select = 0;
+
+			redraw = 1;
 		}
 	}
 
