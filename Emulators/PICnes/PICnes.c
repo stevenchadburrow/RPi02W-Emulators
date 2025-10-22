@@ -5629,7 +5629,7 @@ debug_capture(0);
 
 	ppu_tile_cycles += ((cpu_current_cycles<<1)+cpu_current_cycles);
 	
-	while (ppu_tile_cycles >= 8 && ppu_tile_count < 33) // 8 dots per tile
+	while (ppu_tile_cycles >= 0 && ppu_tile_count < 33) // 8 dots per tile
 	{		
 		ppu_tile_cycles -= 8;
 
