@@ -35,6 +35,13 @@
  * https://github.com/froggestspirit/Peanut-GB
  */
 
+/**
+ * minigb_apu is released under the terms listed within the LICENSE file.
+ *
+ * minigb_apu emulates the audio processing unit (APU) of the Game Boy. This
+ * project is based on MiniGBS by Alex Baines: https://github.com/baines/MiniGBS
+ */
+
 
 
 
@@ -51,6 +58,10 @@
 #include <sys/ioctl.h>
 #include <linux/kd.h>
 #include <termios.h>
+
+// only affects video!!!
+signed int fps_divider = 1; // 1 = 60 FPS, 2 = 30 FPS, 3 = 20 FPS
+signed int fps_counter = 0;
 
 unsigned char cart_rom[0x800000]; // 8 MB max
 unsigned char cart_ram[32768]; // used for NES, GB, and SMS
@@ -76,12 +87,6 @@ unsigned char turbo_b = 0;
 
 // minigb_apu.h / minigb_apu.c
 
-/**
- * minigb_apu is released under the terms listed within the LICENSE file.
- *
- * minigb_apu emulates the audio processing unit (APU) of the Game Boy. This
- * project is based on MiniGBS by Alex Baines: https://github.com/baines/MiniGBS
- */
 
 #include <stdint.h>
 
@@ -2095,7 +2100,7 @@ void __gb_draw_line(struct gb_s *gb) {
         scanline_toggle = 0;
     }
     
-    if (scanline_draw == 0)
+    if (scanline_draw == 0 || fps_counter > 0)
     {
         /* draw window */
         if (gb->gb_reg.LCDC & LCDC_WINDOW_ENABLE && gb->gb_reg.LY >= gb->display.WY && gb->gb_reg.WX <= 166)
@@ -4899,6 +4904,8 @@ void lcd_draw_line(struct gb_s *gb,
 		const uint_fast8_t line
 	)
 {	
+	if (scanline_draw == 0 || fps_counter > 0) return;
+
     if (gb->cgb.cgbMode) // CGB
 	{
 		unsigned long comp_red[2][2], comp_green[2][2], comp_blue[2][2];
@@ -5386,23 +5393,30 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 		/* Execute CPU cycles until the screen has to be redrawn. */
 		gb_run_frame(&gb);
 
-		if (scanline_handheld == 0)
+		if (fps_counter == 0)
 		{
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_large_buffer, SCREEN_LARGE_WIDTH*SCREEN_LARGE_HEIGHT*2);
-			close(screen_file);
+			fps_counter = fps_divider;
+
+			if (scanline_handheld == 0)
+			{
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_large_buffer, SCREEN_LARGE_WIDTH*SCREEN_LARGE_HEIGHT*2);
+				close(screen_file);
+			}
+			else if (scanline_handheld == 1)
+			{
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_buffer, SCREEN_WIDTH*SCREEN_HEIGHT*2);
+				close(screen_file);
+			}
 		}
-		else if (scanline_handheld == 1)
-		{
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_buffer, SCREEN_WIDTH*SCREEN_HEIGHT*2);
-			close(screen_file);
-		}
+
+		fps_counter--;
 
 		// delay
 		if (speed_limiter > 0)
 		{
-			while (clock() < previous_clock + 16743) { }
+			while (clock() < previous_clock + 16742 - 300) { } // for 59.73 Hz, minus 300
 			previous_clock = clock();
 
 #ifdef ENABLE_SOUND
