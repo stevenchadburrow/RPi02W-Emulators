@@ -1078,7 +1078,7 @@ unsigned long previous_clock = 0;
 // needs to be unoptimized else it will be deleted
 void nes_wait()
 {
-	while (clock() < previous_clock + 16640 - 300) { } // for 60.0988 Hz, minus 300
+	while (clock() < previous_clock + 16640 - 250) { } // for 60.0988 Hz, minus 250
 	previous_clock = clock();	
 }
 
