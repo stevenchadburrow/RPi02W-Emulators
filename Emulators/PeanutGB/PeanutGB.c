@@ -5416,7 +5416,7 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 		// delay
 		if (speed_limiter > 0)
 		{
-			while (clock() < previous_clock + 16742 - 300) { } // for 59.73 Hz, minus 300
+			while (clock() < previous_clock + 16743 - 250) { } // for 59.73 Hz, minus 300
 			previous_clock = clock();
 
 #ifdef ENABLE_SOUND
