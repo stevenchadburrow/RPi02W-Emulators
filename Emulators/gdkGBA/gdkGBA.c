@@ -6391,7 +6391,7 @@ int main(int argc, char* argv[]) {
 
 		if (fps_wait > 0)
 		{
-			while (clock() < previous_clock + 16743 * fps_wait) { }
+			while (clock() < previous_clock + (16743 - 0) * fps_wait) { } // for 59.73 Hz, minus zero?
 			previous_clock = clock();
 		}
 
