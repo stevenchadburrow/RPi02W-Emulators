@@ -26,6 +26,11 @@
 #include <time.h>
 
 
+// only affects video!!!
+signed int fps_divider = 1; // 1 = 60 FPS, 2 = 30 FPS, 3 = 20 FPS
+signed int fps_counter = 0;
+
+
 unsigned char nes_running = 1; // when 0, exits game
 
 unsigned char cart_rom[0x1000000]; // 1 MB max?
@@ -43,11 +48,10 @@ int screen_file = 0;
 int buttons_file = 0;
 char buttons_buffer[13] = { '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0' };
 
-#define AUDIO_LEN 2048
+#define AUDIO_LEN 4096
 
 // audio
 unsigned char audio_buffer[AUDIO_LEN];
-unsigned char audio_array[1024];
 int audio_file = 0;
 unsigned int audio_read = 0;
 unsigned int audio_write = 0;
@@ -302,201 +306,56 @@ void nes_error(unsigned char code)
 	printf("NES Error %02X\n", code);
 }
 
-/*
+
 unsigned char nes_save(char *filename)
 {
-	// Global variables
-	FIL file; // File handle for the file we open
-	DIR dir; // Directory information for the current directory
-	FATFS fso; // File System Object for the file system we are reading from
-	
-	//SendString("Initializing disk\n\r\\");
-	
-	// Wait for the disk to initialise
-    while(disk_initialize(0));
-    // Mount the disk
-    f_mount(&fso, "", 0);
-    // Change dir to the root directory
-    f_chdir("/");
-    // Open the directory
-    f_opendir(&dir, ".");
+	FILE *output = NULL;
+
+	output = fopen(filename, "wb");
+	if (!output) return 0;
  
-	unsigned char buffer[1];
+	char buffer;
 	unsigned int bytes;
-	unsigned int result;
-	unsigned char flag;
 	
-	result = f_open(&file, filename, FA_CREATE_ALWAYS | FA_WRITE);
-	if (result == 0)
-	{		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			buffer[0] = prg_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		while (f_sync(&file) != 0) { }
-		while (f_close(&file) != 0) { }
-		
-		//SendString("Wrote cart ram to file\n\r\\");
-		
-		flag = 1;
-	}
-	else
+	for (unsigned int i=0; i<8192; i++)
 	{
-		//SendString("Could not write cart ram to file\n\r\\");
-		
-		flag = 0;
-		
-		nes_error(0x00);
-	}	
+		buffer = prg_ram[i];
+			
+		bytes = fprintf(output, "%c", buffer);
+
+		if (bytes == 0) break;
+	}
+
+	fclose(output);
 	
-	return flag;
+	return 1;
 }
 
 unsigned char nes_load(char *filename)
 {
-	// Global variables
-	FIL file; // File handle for the file we open
-	DIR dir; // Directory information for the current directory
-	FATFS fso; // File System Object for the file system we are reading from
-	
-	//SendString("Initializing disk\n\r\\");
-	
-	// Wait for the disk to initialise
-    while(disk_initialize(0));
-    // Mount the disk
-    f_mount(&fso, "", 0);
-    // Change dir to the root directory
-    f_chdir("/");
-    // Open the directory
-    f_opendir(&dir, ".");
+	FILE *input = NULL;
+
+	input = fopen(filename, "rb");
+	if (!input) return 0;
  
-	unsigned char buffer[1];
+	char buffer;
 	unsigned int bytes;
-	unsigned int result;
-	unsigned char flag;
 	
-	result = f_open(&file, filename, FA_READ);
-	if (result == 0)
-	{		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			prg_ram[i] = buffer[0];
-		}
-		
-		while (f_sync(&file) != 0) { }
-		while (f_close(&file) != 0) { }
-		
-		//SendString("Read cart ram from file\n\r\\");
-		
-		flag = 1;
+	for (unsigned int i=0; i<8192; i++)
+	{
+		bytes = fscanf(input, "%c", &buffer);
+
+		if (bytes == 0) break;
+
+		prg_ram[i] = buffer;
 	}
-	else
-	{		
-		//SendString("Could not read cart ram from file\n\r\\");
-		
-		flag = 0;
-		
-		nes_error(0x00);
-	}	
+
+	fclose(input);
 	
-	return flag;
+	return 1;
 }
 
-
-// change for platform
-unsigned char nes_burn(char *directory, char *filename)
-{
-	//sqi_write(directory, filename);
-	
-	for (unsigned long i=0x1D100000; i<0x1D200000; i+=0x00001000) // pages are 0x1000
-	{
-		NVMErasePage(i);
-	}
-	
-	// Global variables
-	FIL file; // File handle for the file we open
-	DIR dir; // Directory information for the current directory
-	FATFS fso; // File System Object for the file system we are reading from
-	
-	unsigned char buffer[4][1];
-	unsigned long word[4];
-	unsigned int bytes;
-	unsigned int result;
-	unsigned char flag;
-	unsigned long addr;
-	
-	//SendString("Initializing disk\n\r\\");
-	
-	// Wait for the disk to initialise
-	while(disk_initialize(0));
-	// Mount the disk
-	f_mount(&fso, "", 0);
-	// Change dir to the root directory
-	f_chdir(directory);
-	// Open the directory
-	f_opendir(&dir, ".");
-	
-	//SendString("Attempting to read\n\r\\");
-
-	result = f_open(&file, filename, FA_READ);
-	if (result == 0)
-	{	
-		for (addr=0; addr<0x00100000; addr+=16) // up to 1MB
-		{	
-			for (unsigned int pos=0; pos<4; pos++)
-			{
-				while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-				while (f_read(&file, &buffer[1], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-				while (f_read(&file, &buffer[2], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-				while (f_read(&file, &buffer[3], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-
-				word[pos] = (buffer[3][0] << 24) + (buffer[2][0] << 16) + (buffer[1][0] << 8) + (buffer[0][0]);
-			}
-			
-			if (bytes > 0) 
-			{
-				NVMWriteQuadWord(addr+0x1D100000, word[0], word[1], word[2], word[3]);
-			}
-			else break;	
-		}
-
-		while (f_sync(&file) != 0) { }
-		while (f_close(&file) != 0) { }
-
-		flag = 1;
-		
-		//SendString("Read successful\n\r\\");
-	}
-	else
-	{
-		//SendString("Read failure\n\r\\");
-		
-		flag = 0;
-		
-		nes_error(0x00);
-	}
-	
-	
-	DelayMS(1000);
-	
-	// soft reset system
-	SYSKEY = 0x0; // reset
-	SYSKEY = 0xAA996655; // unlock key #1
-	SYSKEY = 0x556699AA; // unlock key #2
-	RSWRST = 1; // set bit to reset of system
-	SYSKEY = 0x0; // re-lock
-	RSWRST; // read from register to reset
-	while (1) { } // wait until reset occurs
-	
-	//return flag; // never gets returned
-	return 0;
-}
-
+/*
 void nes_short_save(FIL *file, unsigned short val)
 {
 	unsigned int bytes;
@@ -1178,7 +1037,7 @@ void nes_pixel_lcd_pal(unsigned short pos_x, unsigned short pos_y, unsigned shor
 
 void nes_sound(unsigned char sample)
 {
-	audio_buffer[(audio_write)%AUDIO_LEN] = sample;
+	audio_buffer[(audio_write)%AUDIO_LEN] = sample + 0x80; // signed
 	
 	audio_write = audio_write + 1;
 	
@@ -1219,7 +1078,7 @@ unsigned long previous_clock = 0;
 // needs to be unoptimized else it will be deleted
 void nes_wait()
 {
-	while (clock() < previous_clock + 16340) { } // for 60.0988 Hz
+	while (clock() < previous_clock + 16640 - 300) { } // for 60.0988 Hz, minus 300
 	previous_clock = clock();	
 }
 
@@ -5643,8 +5502,8 @@ debug_capture(0);
 				}
 			}
 			
-			//if (ppu_frame_count >= screen_rate)
-			//{		
+			if (fps_counter == 0)
+			{		
 #ifdef DEBUG
 debug_reset();
 #endif
@@ -5652,7 +5511,7 @@ debug_reset();
 #ifdef DEBUG
 debug_capture(1);
 #endif
-			//}
+			}
 			
 			if (ppu_flag_eb > 0)
 			{
@@ -5679,8 +5538,8 @@ debug_capture(1);
 				}
 			}
 			
-			//if (ppu_frame_count >= screen_rate)
-			//{	
+			if (fps_counter == 0)
+			{	
 #ifdef DEBUG
 debug_reset();
 #endif
@@ -5713,7 +5572,7 @@ debug_reset();
 #ifdef DEBUG
 debug_capture(2);
 #endif
-			//}
+			}
 		}
 		
 		ppu_tile_count = 0;
@@ -5819,10 +5678,10 @@ debug_capture(2);
 		{
 			nes_sprite_0_calc();
 
-			//if (ppu_frame_count >= screen_rate)
-			//{					
+			if (fps_counter == 0)
+			{					
 				nes_border();
-			//}
+			}
 			
 			nes_loop_halt = 0; // turn CPU back on
 		}
@@ -5865,31 +5724,31 @@ debug_capture(2);
 
 		nes_buttons(buttons_filename);
 
-		if (screen_handheld == 0)
+		if (fps_counter == 0)
 		{
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_large_buffer, 640*480*2);
-			close(screen_file);
-		}
-		else
-		{
-			screen_file = open("/dev/fb0", O_RDWR);
-			write(screen_file, &screen_small_buffer, 320*240*2);
-			close(screen_file);
+			fps_counter = fps_divider; 
+
+			if (screen_handheld == 0)
+			{
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_large_buffer, 640*480*2);
+				close(screen_file);
+			}
+			else
+			{
+				screen_file = open("/dev/fb0", O_RDWR);
+				write(screen_file, &screen_small_buffer, 320*240*2);
+				close(screen_file);
+			}
 		}
 
-		for (int i=0; i<1024; i++)
-		{
-			audio_array[i] = (unsigned char)(audio_buffer[audio_read] + 0x80);
-			audio_read++;
-			if (audio_read >= AUDIO_LEN) audio_read = 0;
-		}		
+		fps_counter--;
 
-		write(audio_file, &audio_array, 1024); // AUDIO_SAMPLES
+		write(audio_file, &audio_buffer, 1024); // AUDIO_SAMPLES
 
 		for (int i=0; i<AUDIO_LEN; i++)
 		{
-			audio_buffer[i] = 0x00;
+			audio_buffer[i] = 0x80;
 		}
 
 		audio_read = 0;
@@ -6004,7 +5863,7 @@ int main(const int argc, const char **argv)
 
 	while (nes_running > 0)
 	{ 
-		nes_loop(argv[2]); // frame rate divider and external interrupt
+		nes_loop(argv[2]);
 	}
 
 	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
