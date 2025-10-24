@@ -30,6 +30,13 @@
 signed int fps_divider = 1; // 1 = 60 FPS, 2 = 30 FPS, 3 = 20 FPS
 signed int fps_counter = 0;
 
+unsigned char speed_limiter = 1;
+
+unsigned char turbo_state = 0;
+unsigned long turbo_counter = 0;
+unsigned char turbo_a = 0;
+unsigned char turbo_b = 0;
+
 
 unsigned char nes_running = 1; // when 0, exits game
 
@@ -307,7 +314,7 @@ void nes_error(unsigned char code)
 }
 
 
-unsigned char nes_save(char *filename)
+unsigned char nes_ram_save(char *filename)
 {
 	FILE *output = NULL;
 
@@ -331,7 +338,7 @@ unsigned char nes_save(char *filename)
 	return 1;
 }
 
-unsigned char nes_load(char *filename)
+unsigned char nes_ram_load(char *filename)
 {
 	FILE *input = NULL;
 
@@ -355,651 +362,591 @@ unsigned char nes_load(char *filename)
 	return 1;
 }
 
-/*
-void nes_short_save(FIL *file, unsigned short val)
+
+void nes_short_save(FILE *file, unsigned short val)
 {
-	unsigned int bytes;
-	unsigned char buffer[0];
+	unsigned char buffer;
 	
-	buffer[0] = (unsigned char)((val & 0xFF00) >> 8);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
-	buffer[0] = (unsigned char)(val & 0x00FF);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
+	buffer = (unsigned char)((val & 0xFF00) >> 8);
+	fprintf(file, "%c", buffer);
+	buffer = (unsigned char)(val & 0x00FF);
+	fprintf(file, "%c", buffer);
 }
 
-void nes_long_save(FIL *file, unsigned long val)
+void nes_long_save(FILE *file, unsigned long val)
 {
-	unsigned int bytes;
-	unsigned char buffer[0];
+	unsigned char buffer;
 	
-	buffer[0] = (unsigned char)((val & 0xFF000000) >> 24);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
-	buffer[0] = (unsigned char)((val & 0x00FF0000) >> 16);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
-	buffer[0] = (unsigned char)((val & 0x0000FF00) >> 8);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
-	buffer[0] = (unsigned char)(val & 0x000000FF);
-	while (f_write(file, buffer, 1, &bytes) != 0) { }
+	buffer = (unsigned char)((val & 0xFF000000) >> 24);
+	fprintf(file, "%c", buffer);
+	buffer = (unsigned char)((val & 0x00FF0000) >> 16);
+	fprintf(file, "%c", buffer);
+	buffer = (unsigned char)((val & 0x0000FF00) >> 8);
+	fprintf(file, "%c", buffer);
+	buffer = (unsigned char)(val & 0x000000FF);
+	fprintf(file, "%c", buffer);
 }
 
-unsigned short nes_short_load(FIL *file)
+unsigned short nes_short_load(FILE *file)
 {
 	unsigned short val = 0x0000;
 	
-	unsigned int bytes;
-	unsigned char buffer[0];
+	unsigned char buffer;
 	
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | ((unsigned short)buffer[0] << 8));
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | (unsigned short)buffer[0]);
+	fscanf(file, "%c", &buffer);
+	val = (val | ((unsigned short)buffer << 8));
+	fscanf(file, "%c", &buffer);
+	val = (val | (unsigned short)buffer);
 	
 	return val;
 }
 
-unsigned long nes_long_load(FIL *file)
+unsigned long nes_long_load(FILE *file)
 {
 	unsigned long val = 0x00000000;
 	
-	unsigned int bytes;
-	unsigned char buffer[0];
+	unsigned char buffer;
 	
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | ((unsigned long)buffer[0] << 24));
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | ((unsigned long)buffer[0] << 16));
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | ((unsigned long)buffer[0] << 8));
-	while (f_read(file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-	val = (val | (unsigned long)buffer[0]);
+	fscanf(file, "%c", &buffer);
+	val = (val | ((unsigned long)buffer << 24));
+	fscanf(file, "%c", &buffer);
+	val = (val | ((unsigned long)buffer << 16));
+	fscanf(file, "%c", &buffer);
+	val = (val | ((unsigned long)buffer << 8));
+	fscanf(file, "%c", &buffer);
+	val = (val | (unsigned long)buffer);
 	
 	return val;
 }
 
 unsigned char nes_state_save(char *filename)
 {
-	// Global variables
-	FIL file; // File handle for the file we open
-	DIR dir; // Directory information for the current directory
-	FATFS fso; // File System Object for the file system we are reading from
-	
-	//SendString("Initializing disk\n\r\\");
-	
-	// Wait for the disk to initialise
-    while(disk_initialize(0));
-    // Mount the disk
-    f_mount(&fso, "", 0);
-    // Change dir to the root directory
-    f_chdir("/");
-    // Open the directory
-    f_opendir(&dir, ".");
+	FILE *ext = NULL;
+
+	ext = fopen(filename, "wb");
+	if (!ext) return 0;
  
-	unsigned char buffer[1];
+	unsigned char buffer;
 	unsigned int bytes;
 	unsigned int result;
 	unsigned char flag;
 	
-	result = f_open(&file, filename, FA_CREATE_ALWAYS | FA_WRITE);
-	if (result == 0)
-	{		
-		for (unsigned int i=0; i<2048; i++)
-		{
-			buffer[0] = cpu_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		for (unsigned int i=0; i<2048; i++)
-		{
-			buffer[0] = ppu_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			buffer[0] = prg_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			buffer[0] = chr_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		for (unsigned int i=0; i<256; i++)
-		{
-			buffer[0] = oam_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		for (unsigned int i=0; i<32; i++)
-		{
-			buffer[0] = pal_ram[i];
-			
-			while (f_write(&file, buffer, 1, &bytes) != 0) { }
-		}
-		
-		nes_long_save(&file, nes_hack_sprite_priority);
-
-		nes_long_save(&file, nes_init_flag);
-		nes_long_save(&file, nes_reset_flag);
-		nes_long_save(&file, nes_audio_flag);
-		nes_long_save(&file, nes_pixel_location);
-
-		nes_long_save(&file, interrupt_count);
-		
-		nes_long_save(&file, cpu_current_cycles);
-		nes_long_save(&file, cpu_dma_cycles);
-
-		nes_long_save(&file, ppu_frame_cycles);
-		nes_long_save(&file, ppu_scanline_cycles);
-		nes_long_save(&file, ppu_tile_cycles);
-
-		nes_long_save(&file, ppu_frame_count);
-		nes_long_save(&file, (unsigned long)ppu_scanline_count);
-		nes_long_save(&file, ppu_tile_count);
-
-		nes_long_save(&file, apu_sample_cycles);
-
-		nes_long_save(&file, map_number);
-		
-		nes_long_save(&file, map_unrom_bank);
-		nes_long_save(&file, map_cnrom_bank);
-		nes_long_save(&file, map_anrom_bank);
-
-		nes_long_save(&file, map_mmc1_ready);
-		nes_long_save(&file, map_mmc1_shift);
-		nes_long_save(&file, map_mmc1_count);
-		nes_long_save(&file, map_mmc1_prg_mode);
-		nes_long_save(&file, map_mmc1_chr_mode);
-		nes_long_save(&file, map_mmc1_chr_bank_0);
-		nes_long_save(&file, map_mmc1_chr_bank_1);
-		nes_long_save(&file, map_mmc1_prg_bank);
-		nes_long_save(&file, map_mmc1_ram);
-		
-		nes_long_save(&file, map_mmc3_bank_next);
-		nes_long_save(&file, map_mmc3_prg_mode);
-		nes_long_save(&file, map_mmc3_chr_mode);
-		nes_long_save(&file, map_mmc3_bank_r0);
-		nes_long_save(&file, map_mmc3_bank_r1);
-		nes_long_save(&file, map_mmc3_bank_r2);
-		nes_long_save(&file, map_mmc3_bank_r3);
-		nes_long_save(&file, map_mmc3_bank_r4);
-		nes_long_save(&file, map_mmc3_bank_r5);
-		nes_long_save(&file, map_mmc3_bank_r6);
-		nes_long_save(&file, map_mmc3_bank_r7);
-		nes_long_save(&file, map_mmc3_ram);
-		nes_long_save(&file, map_mmc3_irq_latch);
-		nes_long_save(&file, map_mmc3_irq_counter);
-		nes_long_save(&file, map_mmc3_irq_enable);
-		nes_long_save(&file, map_mmc3_irq_previous);
-		nes_long_save(&file, map_mmc3_irq_interrupt);
-		nes_long_save(&file, map_mmc3_irq_reload);
-		nes_long_save(&file, map_mmc3_irq_a12);
-		nes_long_save(&file, map_mmc3_irq_delay);
-		nes_long_save(&file, map_mmc3_irq_shift);
-		
-		nes_long_save(&file, cpu_reg_a);
-		nes_long_save(&file, cpu_reg_x);
-		nes_long_save(&file, cpu_reg_y);
-		nes_long_save(&file, cpu_reg_s);
-		
-		nes_long_save(&file, cpu_flag_c);
-		nes_long_save(&file, cpu_flag_z);
-		nes_long_save(&file, cpu_flag_v);
-		nes_long_save(&file, cpu_flag_n);
-		nes_long_save(&file, cpu_flag_d);
-		nes_long_save(&file, cpu_flag_b);
-		nes_long_save(&file, cpu_flag_i);
-		
-		nes_long_save(&file, cpu_reg_pc);
-
-		nes_long_save(&file, cpu_temp_opcode);
-		nes_long_save(&file, cpu_temp_memory);
-		nes_long_save(&file, cpu_temp_address);
-		nes_long_save(&file, cpu_temp_result);
-		nes_long_save(&file, cpu_temp_cycles);
-
-		nes_long_save(&file, cpu_status_r);
-
-		nes_long_save(&file, ppu_reg_v);
-		nes_long_save(&file, ppu_reg_t);
-		nes_long_save(&file, ppu_reg_w);
-		nes_long_save(&file, ppu_reg_a);
-		nes_long_save(&file, ppu_reg_b);
-		nes_long_save(&file, ppu_reg_x);
-
-		nes_long_save(&file, ppu_flag_e);
-		nes_long_save(&file, ppu_flag_p);
-		nes_long_save(&file, ppu_flag_h);
-		nes_long_save(&file, ppu_flag_b);
-		nes_long_save(&file, ppu_flag_s);
-		nes_long_save(&file, ppu_flag_i);
-		nes_long_save(&file, ppu_flag_v);
-		nes_long_save(&file, ppu_flag_0);
-		nes_long_save(&file, ppu_flag_o);
-
-		nes_long_save(&file, ppu_flag_g);
-		nes_long_save(&file, ppu_flag_lb);
-		nes_long_save(&file, ppu_flag_ls);
-		nes_long_save(&file, ppu_flag_eb);
-		nes_long_save(&file, ppu_flag_es);
-
-		nes_long_save(&file, ppu_status_0);
-		nes_long_save(&file, ppu_status_v);
-		nes_long_save(&file, (unsigned long)ppu_status_s);
-		nes_long_save(&file, (unsigned long)ppu_status_d);
-		nes_long_save(&file, ppu_status_m);
-
-		nes_long_save(&file, ctl_flag_s);
-		nes_long_save(&file, ctl_value_1);
-		nes_long_save(&file, ctl_value_2);
-		nes_long_save(&file, ctl_latch_1);
-		nes_long_save(&file, ctl_latch_2);
-		
-		nes_short_save(&file, apu_pulse_1_d);
-		nes_short_save(&file, apu_pulse_1_u);
-		nes_short_save(&file, apu_pulse_1_i);
-		nes_short_save(&file, apu_pulse_1_c);
-		nes_short_save(&file, apu_pulse_1_v);
-		nes_short_save(&file, apu_pulse_1_m);
-		nes_short_save(&file, apu_pulse_1_r);
-		nes_short_save(&file, apu_pulse_1_s);
-		nes_short_save(&file, apu_pulse_1_a);
-		nes_short_save(&file, apu_pulse_1_n);
-		nes_short_save(&file, apu_pulse_1_p);
-		nes_short_save(&file, apu_pulse_1_w);
-		nes_short_save(&file, apu_pulse_1_e);
-		nes_short_save(&file, apu_pulse_1_t);
-		nes_short_save(&file, apu_pulse_1_k);
-		nes_short_save(&file, apu_pulse_1_l);
-		nes_short_save(&file, apu_pulse_1_o);
-		
-		nes_short_save(&file, apu_pulse_2_d);
-		nes_short_save(&file, apu_pulse_2_u);
-		nes_short_save(&file, apu_pulse_2_i);
-		nes_short_save(&file, apu_pulse_2_c);
-		nes_short_save(&file, apu_pulse_2_v);
-		nes_short_save(&file, apu_pulse_2_m);
-		nes_short_save(&file, apu_pulse_2_r);
-		nes_short_save(&file, apu_pulse_2_s);
-		nes_short_save(&file, apu_pulse_2_a);
-		nes_short_save(&file, apu_pulse_2_n);
-		nes_short_save(&file, apu_pulse_2_p);
-		nes_short_save(&file, apu_pulse_2_w);
-		nes_short_save(&file, apu_pulse_2_e);
-		nes_short_save(&file, apu_pulse_2_t);
-		nes_short_save(&file, apu_pulse_2_k);
-		nes_short_save(&file, apu_pulse_2_l);
-		nes_short_save(&file, apu_pulse_2_o);
-
-		nes_short_save(&file, apu_triangle_c);
-		nes_short_save(&file, apu_triangle_r);
-		nes_short_save(&file, apu_triangle_v);
-		nes_short_save(&file, apu_triangle_f);
-		nes_short_save(&file, apu_triangle_h);
-		nes_short_save(&file, apu_triangle_q);
-		nes_short_save(&file, apu_triangle_t);
-		nes_short_save(&file, apu_triangle_k);
-		nes_short_save(&file, apu_triangle_l);
-		nes_short_save(&file, apu_triangle_p);
-		nes_short_save(&file, apu_triangle_d);
-		nes_short_save(&file, apu_triangle_o);
-
-		nes_short_save(&file, apu_noise_i);
-		nes_short_save(&file, apu_noise_c);
-		nes_short_save(&file, apu_noise_v);
-		nes_short_save(&file, apu_noise_m);
-		nes_short_save(&file, apu_noise_r);
-		nes_short_save(&file, apu_noise_s);
-		nes_short_save(&file, apu_noise_x);
-		nes_short_save(&file, apu_noise_d);
-		nes_short_save(&file, apu_noise_t);
-		nes_short_save(&file, apu_noise_k);
-		nes_short_save(&file, apu_noise_l);
-		nes_short_save(&file, apu_noise_o);
-		
-		nes_short_save(&file, apu_dmc_i);
-		nes_short_save(&file, apu_dmc_l);
-		nes_short_save(&file, apu_dmc_r);
-		nes_short_save(&file, apu_dmc_k);
-		nes_short_save(&file, apu_dmc_d);
-		nes_short_save(&file, apu_dmc_a);
-		nes_short_save(&file, apu_dmc_s);
-		nes_short_save(&file, apu_dmc_b);
-		nes_short_save(&file, apu_dmc_t);
-		nes_short_save(&file, apu_dmc_o);
-
-		nes_short_save(&file, apu_flag_i);
-		nes_short_save(&file, apu_flag_f);
-		nes_short_save(&file, apu_flag_d);
-		nes_short_save(&file, apu_flag_n);
-		nes_short_save(&file, apu_flag_t);
-		nes_short_save(&file, apu_flag_2);
-		nes_short_save(&file, apu_flag_1);
-		nes_short_save(&file, apu_flag_m);
-		nes_short_save(&file, apu_flag_b);
-		
-		nes_short_save(&file, apu_counter_q);
-		nes_short_save(&file, apu_counter_s);
-		nes_short_save(&file, apu_mixer_output);
-		
-		while (f_sync(&file) != 0) { }
-		while (f_close(&file) != 0) { }
-		
-		//SendString("Wrote all memory to file\n\r\\");
-		
-		flag = 1;
-	}
-	else
+	for (unsigned int i=0; i<2048; i++)
 	{
-		//SendString("Could not write all memory to file\n\r\\");
+		buffer = cpu_ram[i];
 		
-		flag = 0;
-		
-		nes_error(0x00);
-	}	
+		fprintf(ext, "%c", buffer);
+	}
 	
-	return flag;
+	for (unsigned int i=0; i<2048; i++)
+	{
+		buffer = ppu_ram[i];
+		
+		fprintf(ext, "%c", buffer);
+	}
+	
+	for (unsigned int i=0; i<8192; i++)
+	{
+		buffer = prg_ram[i];
+		
+		fprintf(ext, "%c", buffer);
+	}
+	
+	for (unsigned int i=0; i<8192; i++)
+	{
+		buffer = chr_ram[i];
+		
+		fprintf(ext, "%c", buffer);
+	}
+	
+	for (unsigned int i=0; i<256; i++)
+	{
+		buffer = oam_ram[i];
+		
+		fprintf(ext, "%c", buffer);
+	}
+	
+	for (unsigned int i=0; i<32; i++)
+	{
+		buffer = pal_ram[i];
+		
+		fprintf(ext, "%c", buffer);
+	}
+	
+	nes_long_save(ext, nes_hack_sprite_priority);
+
+	nes_long_save(ext, nes_init_flag);
+	nes_long_save(ext, nes_reset_flag);
+	nes_long_save(ext, nes_audio_flag);
+	nes_long_save(ext, nes_pixel_location);
+
+	//nes_long_save(ext, interrupt_count);
+	
+	nes_long_save(ext, cpu_current_cycles);
+	nes_long_save(ext, cpu_dma_cycles);
+
+	nes_long_save(ext, ppu_frame_cycles);
+	nes_long_save(ext, ppu_scanline_cycles);
+	nes_long_save(ext, ppu_tile_cycles);
+
+	nes_long_save(ext, ppu_frame_count);
+	nes_long_save(ext, (unsigned long)ppu_scanline_count);
+	nes_long_save(ext, ppu_tile_count);
+
+	nes_long_save(ext, apu_sample_cycles);
+
+	nes_long_save(ext, map_number);
+	
+	nes_long_save(ext, map_unrom_bank);
+	nes_long_save(ext, map_cnrom_bank);
+	nes_long_save(ext, map_anrom_bank);
+
+	nes_long_save(ext, map_mmc1_ready);
+	nes_long_save(ext, map_mmc1_shift);
+	nes_long_save(ext, map_mmc1_count);
+	nes_long_save(ext, map_mmc1_prg_mode);
+	nes_long_save(ext, map_mmc1_chr_mode);
+	nes_long_save(ext, map_mmc1_chr_bank_0);
+	nes_long_save(ext, map_mmc1_chr_bank_1);
+	nes_long_save(ext, map_mmc1_prg_bank);
+	nes_long_save(ext, map_mmc1_ram);
+	
+	nes_long_save(ext, map_mmc3_bank_next);
+	nes_long_save(ext, map_mmc3_prg_mode);
+	nes_long_save(ext, map_mmc3_chr_mode);
+	nes_long_save(ext, map_mmc3_bank_r0);
+	nes_long_save(ext, map_mmc3_bank_r1);
+	nes_long_save(ext, map_mmc3_bank_r2);
+	nes_long_save(ext, map_mmc3_bank_r3);
+	nes_long_save(ext, map_mmc3_bank_r4);
+	nes_long_save(ext, map_mmc3_bank_r5);
+	nes_long_save(ext, map_mmc3_bank_r6);
+	nes_long_save(ext, map_mmc3_bank_r7);
+	nes_long_save(ext, map_mmc3_ram);
+	nes_long_save(ext, map_mmc3_irq_latch);
+	nes_long_save(ext, map_mmc3_irq_counter);
+	nes_long_save(ext, map_mmc3_irq_enable);
+	nes_long_save(ext, map_mmc3_irq_previous);
+	nes_long_save(ext, map_mmc3_irq_interrupt);
+	nes_long_save(ext, map_mmc3_irq_reload);
+	nes_long_save(ext, map_mmc3_irq_a12);
+	nes_long_save(ext, map_mmc3_irq_delay);
+	nes_long_save(ext, map_mmc3_irq_shift);
+	
+	nes_long_save(ext, cpu_reg_a);
+	nes_long_save(ext, cpu_reg_x);
+	nes_long_save(ext, cpu_reg_y);
+	nes_long_save(ext, cpu_reg_s);
+	
+	nes_long_save(ext, cpu_flag_c);
+	nes_long_save(ext, cpu_flag_z);
+	nes_long_save(ext, cpu_flag_v);
+	nes_long_save(ext, cpu_flag_n);
+	nes_long_save(ext, cpu_flag_d);
+	nes_long_save(ext, cpu_flag_b);
+	nes_long_save(ext, cpu_flag_i);
+	
+	nes_long_save(ext, cpu_reg_pc);
+
+	nes_long_save(ext, cpu_temp_opcode);
+	nes_long_save(ext, cpu_temp_memory);
+	nes_long_save(ext, cpu_temp_address);
+	nes_long_save(ext, cpu_temp_result);
+	nes_long_save(ext, cpu_temp_cycles);
+
+	nes_long_save(ext, cpu_status_r);
+
+	nes_long_save(ext, ppu_reg_v);
+	nes_long_save(ext, ppu_reg_t);
+	nes_long_save(ext, ppu_reg_w);
+	nes_long_save(ext, ppu_reg_a);
+	nes_long_save(ext, ppu_reg_b);
+	nes_long_save(ext, ppu_reg_x);
+
+	nes_long_save(ext, ppu_flag_e);
+	nes_long_save(ext, ppu_flag_p);
+	nes_long_save(ext, ppu_flag_h);
+	nes_long_save(ext, ppu_flag_b);
+	nes_long_save(ext, ppu_flag_s);
+	nes_long_save(ext, ppu_flag_i);
+	nes_long_save(ext, ppu_flag_v);
+	nes_long_save(ext, ppu_flag_0);
+	nes_long_save(ext, ppu_flag_o);
+
+	nes_long_save(ext, ppu_flag_g);
+	nes_long_save(ext, ppu_flag_lb);
+	nes_long_save(ext, ppu_flag_ls);
+	nes_long_save(ext, ppu_flag_eb);
+	nes_long_save(ext, ppu_flag_es);
+
+	nes_long_save(ext, ppu_status_0);
+	nes_long_save(ext, ppu_status_v);
+	nes_long_save(ext, (unsigned long)ppu_status_s);
+	nes_long_save(ext, (unsigned long)ppu_status_d);
+	nes_long_save(ext, ppu_status_m);
+
+	nes_long_save(ext, ctl_flag_s);
+	nes_long_save(ext, ctl_value_1);
+	nes_long_save(ext, ctl_value_2);
+	nes_long_save(ext, ctl_latch_1);
+	nes_long_save(ext, ctl_latch_2);
+	
+	nes_short_save(ext, apu_pulse_1_d);
+	nes_short_save(ext, apu_pulse_1_u);
+	nes_short_save(ext, apu_pulse_1_i);
+	nes_short_save(ext, apu_pulse_1_c);
+	nes_short_save(ext, apu_pulse_1_v);
+	nes_short_save(ext, apu_pulse_1_m);
+	nes_short_save(ext, apu_pulse_1_r);
+	nes_short_save(ext, apu_pulse_1_s);
+	nes_short_save(ext, apu_pulse_1_a);
+	nes_short_save(ext, apu_pulse_1_n);
+	nes_short_save(ext, apu_pulse_1_p);
+	nes_short_save(ext, apu_pulse_1_w);
+	nes_short_save(ext, apu_pulse_1_e);
+	nes_short_save(ext, apu_pulse_1_t);
+	nes_short_save(ext, apu_pulse_1_k);
+	nes_short_save(ext, apu_pulse_1_l);
+	nes_short_save(ext, apu_pulse_1_o);
+	
+	nes_short_save(ext, apu_pulse_2_d);
+	nes_short_save(ext, apu_pulse_2_u);
+	nes_short_save(ext, apu_pulse_2_i);
+	nes_short_save(ext, apu_pulse_2_c);
+	nes_short_save(ext, apu_pulse_2_v);
+	nes_short_save(ext, apu_pulse_2_m);
+	nes_short_save(ext, apu_pulse_2_r);
+	nes_short_save(ext, apu_pulse_2_s);
+	nes_short_save(ext, apu_pulse_2_a);
+	nes_short_save(ext, apu_pulse_2_n);
+	nes_short_save(ext, apu_pulse_2_p);
+	nes_short_save(ext, apu_pulse_2_w);
+	nes_short_save(ext, apu_pulse_2_e);
+	nes_short_save(ext, apu_pulse_2_t);
+	nes_short_save(ext, apu_pulse_2_k);
+	nes_short_save(ext, apu_pulse_2_l);
+	nes_short_save(ext, apu_pulse_2_o);
+
+	nes_short_save(ext, apu_triangle_c);
+	nes_short_save(ext, apu_triangle_r);
+	nes_short_save(ext, apu_triangle_v);
+	nes_short_save(ext, apu_triangle_f);
+	nes_short_save(ext, apu_triangle_h);
+	nes_short_save(ext, apu_triangle_q);
+	nes_short_save(ext, apu_triangle_t);
+	nes_short_save(ext, apu_triangle_k);
+	nes_short_save(ext, apu_triangle_l);
+	nes_short_save(ext, apu_triangle_p);
+	nes_short_save(ext, apu_triangle_d);
+	nes_short_save(ext, apu_triangle_o);
+
+	nes_short_save(ext, apu_noise_i);
+	nes_short_save(ext, apu_noise_c);
+	nes_short_save(ext, apu_noise_v);
+	nes_short_save(ext, apu_noise_m);
+	nes_short_save(ext, apu_noise_r);
+	nes_short_save(ext, apu_noise_s);
+	nes_short_save(ext, apu_noise_x);
+	nes_short_save(ext, apu_noise_d);
+	nes_short_save(ext, apu_noise_t);
+	nes_short_save(ext, apu_noise_k);
+	nes_short_save(ext, apu_noise_l);
+	nes_short_save(ext, apu_noise_o);
+	
+	nes_short_save(ext, apu_dmc_i);
+	nes_short_save(ext, apu_dmc_l);
+	nes_short_save(ext, apu_dmc_r);
+	nes_short_save(ext, apu_dmc_k);
+	nes_short_save(ext, apu_dmc_d);
+	nes_short_save(ext, apu_dmc_a);
+	nes_short_save(ext, apu_dmc_s);
+	nes_short_save(ext, apu_dmc_b);
+	nes_short_save(ext, apu_dmc_t);
+	nes_short_save(ext, apu_dmc_o);
+
+	nes_short_save(ext, apu_flag_i);
+	nes_short_save(ext, apu_flag_f);
+	nes_short_save(ext, apu_flag_d);
+	nes_short_save(ext, apu_flag_n);
+	nes_short_save(ext, apu_flag_t);
+	nes_short_save(ext, apu_flag_2);
+	nes_short_save(ext, apu_flag_1);
+	nes_short_save(ext, apu_flag_m);
+	nes_short_save(ext, apu_flag_b);
+	
+	nes_short_save(ext, apu_counter_q);
+	nes_short_save(ext, apu_counter_s);
+	nes_short_save(ext, apu_mixer_output);
+
+	fclose(ext);
+	
+	return 1;
 }
 
 unsigned char nes_state_load(char *filename)
 {
-	// Global variables
-	FIL file; // File handle for the file we open
-	DIR dir; // Directory information for the current directory
-	FATFS fso; // File System Object for the file system we are reading from
-	
-	//SendString("Initializing disk\n\r\\");
-	
-	// Wait for the disk to initialise
-    while(disk_initialize(0));
-    // Mount the disk
-    f_mount(&fso, "", 0);
-    // Change dir to the root directory
-    f_chdir("/");
-    // Open the directory
-    f_opendir(&dir, ".");
+	FILE *ext = NULL;
+
+	ext = fopen(filename, "rb");
+	if (!ext) return 0;
  
-	unsigned char buffer[1];
+	unsigned char buffer;
 	unsigned int bytes;
 	unsigned int result;
 	unsigned char flag;
 	
-	result = f_open(&file, filename, FA_READ);
-	if (result == 0)
-	{		
-		for (unsigned int i=0; i<2048; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			cpu_ram[i] = buffer[0];
-		}
+	for (unsigned int i=0; i<2048; i++)
+	{
+		fscanf(ext, "%c", &buffer);
 		
-		for (unsigned int i=0; i<2048; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			ppu_ram[i] = buffer[0];
-		}
-		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			prg_ram[i] = buffer[0];
-		}
-		
-		for (unsigned int i=0; i<8192; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			chr_ram[i] = buffer[0];
-		}
-		
-		for (unsigned int i=0; i<256; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			oam_ram[i] = buffer[0];
-		}
-		
-		for (unsigned int i=0; i<32; i++)
-		{
-			while (f_read(&file, &buffer[0], 1, &bytes) != 0) { } // MUST READ ONE BYTE AT A TIME!!!
-			
-			pal_ram[i] = buffer[0];
-		}
-		
-		nes_hack_sprite_priority = nes_long_load(&file);
-
-		nes_init_flag = nes_long_load(&file);
-		nes_reset_flag = nes_long_load(&file);
-		nes_audio_flag = nes_long_load(&file);
-		nes_pixel_location = nes_long_load(&file);
-
-		interrupt_count = nes_long_load(&file);
-		
-		cpu_current_cycles = nes_long_load(&file);
-		cpu_dma_cycles = nes_long_load(&file);
-
-		ppu_frame_cycles = nes_long_load(&file);
-		ppu_scanline_cycles = nes_long_load(&file);
-		ppu_tile_cycles = nes_long_load(&file);
-
-		ppu_frame_count = nes_long_load(&file);
-		ppu_scanline_count = (signed long)nes_long_load(&file);
-		ppu_tile_count = nes_long_load(&file);
-
-		apu_sample_cycles = nes_long_load(&file);
-
-		map_number = nes_long_load(&file);
-		
-		map_unrom_bank = nes_long_load(&file);
-		map_cnrom_bank = nes_long_load(&file);
-		map_anrom_bank = nes_long_load(&file);
-
-		map_mmc1_ready = nes_long_load(&file);
-		map_mmc1_shift = nes_long_load(&file);
-		map_mmc1_count = nes_long_load(&file);
-		map_mmc1_prg_mode = nes_long_load(&file);
-		map_mmc1_chr_mode = nes_long_load(&file);
-		map_mmc1_chr_bank_0 = nes_long_load(&file);
-		map_mmc1_chr_bank_1 = nes_long_load(&file);
-		map_mmc1_prg_bank = nes_long_load(&file);
-		map_mmc1_ram = nes_long_load(&file);
-		
-		map_mmc3_bank_next = nes_long_load(&file);
-		map_mmc3_prg_mode = nes_long_load(&file);
-		map_mmc3_chr_mode = nes_long_load(&file);
-		map_mmc3_bank_r0 = nes_long_load(&file);
-		map_mmc3_bank_r1 = nes_long_load(&file);
-		map_mmc3_bank_r2 = nes_long_load(&file);
-		map_mmc3_bank_r3 = nes_long_load(&file);
-		map_mmc3_bank_r4 = nes_long_load(&file);
-		map_mmc3_bank_r5 = nes_long_load(&file);
-		map_mmc3_bank_r6 = nes_long_load(&file);
-		map_mmc3_bank_r7 = nes_long_load(&file);
-		map_mmc3_ram = nes_long_load(&file);
-		map_mmc3_irq_latch = nes_long_load(&file);
-		map_mmc3_irq_counter = nes_long_load(&file);
-		map_mmc3_irq_enable = nes_long_load(&file);
-		map_mmc3_irq_previous = nes_long_load(&file);
-		map_mmc3_irq_interrupt = nes_long_load(&file);
-		map_mmc3_irq_reload = nes_long_load(&file);
-		map_mmc3_irq_a12 = nes_long_load(&file);
-		map_mmc3_irq_delay = nes_long_load(&file);
-		map_mmc3_irq_shift = nes_long_load(&file);
-		
-		cpu_reg_a = nes_long_load(&file);
-		cpu_reg_x = nes_long_load(&file);
-		cpu_reg_y = nes_long_load(&file);
-		cpu_reg_s = nes_long_load(&file);
-		
-		cpu_flag_c = nes_long_load(&file);
-		cpu_flag_z = nes_long_load(&file);
-		cpu_flag_v = nes_long_load(&file);
-		cpu_flag_n = nes_long_load(&file);
-		cpu_flag_d = nes_long_load(&file);
-		cpu_flag_b = nes_long_load(&file);
-		cpu_flag_i = nes_long_load(&file);
-		
-		cpu_reg_pc = nes_long_load(&file);
-
-		cpu_temp_opcode = nes_long_load(&file);
-		cpu_temp_memory = nes_long_load(&file);
-		cpu_temp_address = nes_long_load(&file);
-		cpu_temp_result = nes_long_load(&file);
-		cpu_temp_cycles = nes_long_load(&file);
-
-		cpu_status_r = nes_long_load(&file);
-
-		ppu_reg_v = nes_long_load(&file);
-		ppu_reg_t = nes_long_load(&file);
-		ppu_reg_w = nes_long_load(&file);
-		ppu_reg_a = nes_long_load(&file);
-		ppu_reg_b = nes_long_load(&file);
-		ppu_reg_x = nes_long_load(&file);
-
-		ppu_flag_e = nes_long_load(&file);
-		ppu_flag_p = nes_long_load(&file);
-		ppu_flag_h = nes_long_load(&file);
-		ppu_flag_b = nes_long_load(&file);
-		ppu_flag_s = nes_long_load(&file);
-		ppu_flag_i = nes_long_load(&file);
-		ppu_flag_v = nes_long_load(&file);
-		ppu_flag_0 = nes_long_load(&file);
-		ppu_flag_o = nes_long_load(&file);
-
-		ppu_flag_g = nes_long_load(&file);
-		ppu_flag_lb = nes_long_load(&file);
-		ppu_flag_ls = nes_long_load(&file);
-		ppu_flag_eb = nes_long_load(&file);
-		ppu_flag_es = nes_long_load(&file);
-
-		ppu_status_0 = nes_long_load(&file);
-		ppu_status_v = nes_long_load(&file);
-		ppu_status_s = (signed long)nes_long_load(&file);
-		ppu_status_d = (signed long)nes_long_load(&file);
-		ppu_status_m = nes_long_load(&file);
-
-		ctl_flag_s = nes_long_load(&file);
-		ctl_value_1 = nes_long_load(&file);
-		ctl_value_2 = nes_long_load(&file);
-		ctl_latch_1 = nes_long_load(&file);
-		ctl_latch_2 = nes_long_load(&file);
-		
-		apu_pulse_1_d = nes_short_load(&file);
-		apu_pulse_1_u = nes_short_load(&file);
-		apu_pulse_1_i = nes_short_load(&file);
-		apu_pulse_1_c = nes_short_load(&file);
-		apu_pulse_1_v = nes_short_load(&file);
-		apu_pulse_1_m = nes_short_load(&file);
-		apu_pulse_1_r = nes_short_load(&file);
-		apu_pulse_1_s = nes_short_load(&file);
-		apu_pulse_1_a = nes_short_load(&file);
-		apu_pulse_1_n = nes_short_load(&file);
-		apu_pulse_1_p = nes_short_load(&file);
-		apu_pulse_1_w = nes_short_load(&file);
-		apu_pulse_1_e = nes_short_load(&file);
-		apu_pulse_1_t = nes_short_load(&file);
-		apu_pulse_1_k = nes_short_load(&file);
-		apu_pulse_1_l = nes_short_load(&file);
-		apu_pulse_1_o = nes_short_load(&file);
-		
-		apu_pulse_2_d = nes_short_load(&file);
-		apu_pulse_2_u = nes_short_load(&file);
-		apu_pulse_2_i = nes_short_load(&file);
-		apu_pulse_2_c = nes_short_load(&file);
-		apu_pulse_2_v = nes_short_load(&file);
-		apu_pulse_2_m = nes_short_load(&file);
-		apu_pulse_2_r = nes_short_load(&file);
-		apu_pulse_2_s = nes_short_load(&file);
-		apu_pulse_2_a = nes_short_load(&file);
-		apu_pulse_2_n = nes_short_load(&file);
-		apu_pulse_2_p = nes_short_load(&file);
-		apu_pulse_2_w = nes_short_load(&file);
-		apu_pulse_2_e = nes_short_load(&file);
-		apu_pulse_2_t = nes_short_load(&file);
-		apu_pulse_2_k = nes_short_load(&file);
-		apu_pulse_2_l = nes_short_load(&file);
-		apu_pulse_2_o = nes_short_load(&file);
-
-		apu_triangle_c = nes_short_load(&file);
-		apu_triangle_r = nes_short_load(&file);
-		apu_triangle_v = nes_short_load(&file);
-		apu_triangle_f = nes_short_load(&file);
-		apu_triangle_h = nes_short_load(&file);
-		apu_triangle_q = nes_short_load(&file);
-		apu_triangle_t = nes_short_load(&file);
-		apu_triangle_k = nes_short_load(&file);
-		apu_triangle_l = nes_short_load(&file);
-		apu_triangle_p = nes_short_load(&file);
-		apu_triangle_d = nes_short_load(&file);
-		apu_triangle_o = nes_short_load(&file);
-
-		apu_noise_i = nes_short_load(&file);
-		apu_noise_c = nes_short_load(&file);
-		apu_noise_v = nes_short_load(&file);
-		apu_noise_m = nes_short_load(&file);
-		apu_noise_r = nes_short_load(&file);
-		apu_noise_s = nes_short_load(&file);
-		apu_noise_x = nes_short_load(&file);
-		apu_noise_d = nes_short_load(&file);
-		apu_noise_t = nes_short_load(&file);
-		apu_noise_k = nes_short_load(&file);
-		apu_noise_l = nes_short_load(&file);
-		apu_noise_o = nes_short_load(&file);
-		
-		apu_dmc_i = nes_short_load(&file);
-		apu_dmc_l = nes_short_load(&file);
-		apu_dmc_r = nes_short_load(&file);
-		apu_dmc_k = nes_short_load(&file);
-		apu_dmc_d = nes_short_load(&file);
-		apu_dmc_a = nes_short_load(&file);
-		apu_dmc_s = nes_short_load(&file);
-		apu_dmc_b = nes_short_load(&file);
-		apu_dmc_t = nes_short_load(&file);
-		apu_dmc_o = nes_short_load(&file);
-
-		apu_flag_i = nes_short_load(&file);
-		apu_flag_f = nes_short_load(&file);
-		apu_flag_d = nes_short_load(&file);
-		apu_flag_n = nes_short_load(&file);
-		apu_flag_t = nes_short_load(&file);
-		apu_flag_2 = nes_short_load(&file);
-		apu_flag_1 = nes_short_load(&file);
-		apu_flag_m = nes_short_load(&file);
-		apu_flag_b = nes_short_load(&file);
-		
-		apu_counter_q = nes_short_load(&file);
-		apu_counter_s = nes_short_load(&file);
-		apu_mixer_output = nes_short_load(&file);		
-		
-		while (f_sync(&file) != 0) { }
-		while (f_close(&file) != 0) { }
-		
-		//SendString("Read all memory from file\n\r\\");
-		
-		flag = 1;
+		cpu_ram[i] = buffer;
 	}
-	else
-	{		
-		//SendString("Could not read all memory from file\n\r\\");
-		
-		flag = 0;
-		
-		nes_error(0x00);
-	}	
 	
-	return flag;
+	for (unsigned int i=0; i<2048; i++)
+	{
+		fscanf(ext, "%c", &buffer);
+		
+		ppu_ram[i] = buffer;
+	}
+	
+	for (unsigned int i=0; i<8192; i++)
+	{
+		fscanf(ext, "%c", &buffer);
+		
+		prg_ram[i] = buffer;
+	}
+	
+	for (unsigned int i=0; i<8192; i++)
+	{
+		fscanf(ext, "%c", &buffer);
+
+		chr_ram[i] = buffer;
+	}
+	
+	for (unsigned int i=0; i<256; i++)
+	{	
+		fscanf(ext, "%c", &buffer);
+
+		oam_ram[i] = buffer;
+	}
+	
+	for (unsigned int i=0; i<32; i++)
+	{
+		fscanf(ext, "%c", &buffer);
+		
+		pal_ram[i] = buffer;
+	}
+	
+	nes_hack_sprite_priority = nes_long_load(ext);
+
+	nes_init_flag = nes_long_load(ext);
+	nes_reset_flag = nes_long_load(ext);
+	nes_audio_flag = nes_long_load(ext);
+	nes_pixel_location = nes_long_load(ext);
+
+	//interrupt_count = nes_long_load(ext);
+	
+	cpu_current_cycles = nes_long_load(ext);
+	cpu_dma_cycles = nes_long_load(ext);
+
+	ppu_frame_cycles = nes_long_load(ext);
+	ppu_scanline_cycles = nes_long_load(ext);
+	ppu_tile_cycles = nes_long_load(ext);
+
+	ppu_frame_count = nes_long_load(ext);
+	ppu_scanline_count = (signed long)nes_long_load(ext);
+	ppu_tile_count = nes_long_load(ext);
+
+	apu_sample_cycles = nes_long_load(ext);
+
+	map_number = nes_long_load(ext);
+	
+	map_unrom_bank = nes_long_load(ext);
+	map_cnrom_bank = nes_long_load(ext);
+	map_anrom_bank = nes_long_load(ext);
+
+	map_mmc1_ready = nes_long_load(ext);
+	map_mmc1_shift = nes_long_load(ext);
+	map_mmc1_count = nes_long_load(ext);
+	map_mmc1_prg_mode = nes_long_load(ext);
+	map_mmc1_chr_mode = nes_long_load(ext);
+	map_mmc1_chr_bank_0 = nes_long_load(ext);
+	map_mmc1_chr_bank_1 = nes_long_load(ext);
+	map_mmc1_prg_bank = nes_long_load(ext);
+	map_mmc1_ram = nes_long_load(ext);
+	
+	map_mmc3_bank_next = nes_long_load(ext);
+	map_mmc3_prg_mode = nes_long_load(ext);
+	map_mmc3_chr_mode = nes_long_load(ext);
+	map_mmc3_bank_r0 = nes_long_load(ext);
+	map_mmc3_bank_r1 = nes_long_load(ext);
+	map_mmc3_bank_r2 = nes_long_load(ext);
+	map_mmc3_bank_r3 = nes_long_load(ext);
+	map_mmc3_bank_r4 = nes_long_load(ext);
+	map_mmc3_bank_r5 = nes_long_load(ext);
+	map_mmc3_bank_r6 = nes_long_load(ext);
+	map_mmc3_bank_r7 = nes_long_load(ext);
+	map_mmc3_ram = nes_long_load(ext);
+	map_mmc3_irq_latch = nes_long_load(ext);
+	map_mmc3_irq_counter = nes_long_load(ext);
+	map_mmc3_irq_enable = nes_long_load(ext);
+	map_mmc3_irq_previous = nes_long_load(ext);
+	map_mmc3_irq_interrupt = nes_long_load(ext);
+	map_mmc3_irq_reload = nes_long_load(ext);
+	map_mmc3_irq_a12 = nes_long_load(ext);
+	map_mmc3_irq_delay = nes_long_load(ext);
+	map_mmc3_irq_shift = nes_long_load(ext);
+	
+	cpu_reg_a = nes_long_load(ext);
+	cpu_reg_x = nes_long_load(ext);
+	cpu_reg_y = nes_long_load(ext);
+	cpu_reg_s = nes_long_load(ext);
+	
+	cpu_flag_c = nes_long_load(ext);
+	cpu_flag_z = nes_long_load(ext);
+	cpu_flag_v = nes_long_load(ext);
+	cpu_flag_n = nes_long_load(ext);
+	cpu_flag_d = nes_long_load(ext);
+	cpu_flag_b = nes_long_load(ext);
+	cpu_flag_i = nes_long_load(ext);
+	
+	cpu_reg_pc = nes_long_load(ext);
+
+	cpu_temp_opcode = nes_long_load(ext);
+	cpu_temp_memory = nes_long_load(ext);
+	cpu_temp_address = nes_long_load(ext);
+	cpu_temp_result = nes_long_load(ext);
+	cpu_temp_cycles = nes_long_load(ext);
+
+	cpu_status_r = nes_long_load(ext);
+
+	ppu_reg_v = nes_long_load(ext);
+	ppu_reg_t = nes_long_load(ext);
+	ppu_reg_w = nes_long_load(ext);
+	ppu_reg_a = nes_long_load(ext);
+	ppu_reg_b = nes_long_load(ext);
+	ppu_reg_x = nes_long_load(ext);
+
+	ppu_flag_e = nes_long_load(ext);
+	ppu_flag_p = nes_long_load(ext);
+	ppu_flag_h = nes_long_load(ext);
+	ppu_flag_b = nes_long_load(ext);
+	ppu_flag_s = nes_long_load(ext);
+	ppu_flag_i = nes_long_load(ext);
+	ppu_flag_v = nes_long_load(ext);
+	ppu_flag_0 = nes_long_load(ext);
+	ppu_flag_o = nes_long_load(ext);
+
+	ppu_flag_g = nes_long_load(ext);
+	ppu_flag_lb = nes_long_load(ext);
+	ppu_flag_ls = nes_long_load(ext);
+	ppu_flag_eb = nes_long_load(ext);
+	ppu_flag_es = nes_long_load(ext);
+
+	ppu_status_0 = nes_long_load(ext);
+	ppu_status_v = nes_long_load(ext);
+	ppu_status_s = (signed long)nes_long_load(ext);
+	ppu_status_d = (signed long)nes_long_load(ext);
+	ppu_status_m = nes_long_load(ext);
+
+	ctl_flag_s = nes_long_load(ext);
+	ctl_value_1 = nes_long_load(ext);
+	ctl_value_2 = nes_long_load(ext);
+	ctl_latch_1 = nes_long_load(ext);
+	ctl_latch_2 = nes_long_load(ext);
+	
+	apu_pulse_1_d = nes_short_load(ext);
+	apu_pulse_1_u = nes_short_load(ext);
+	apu_pulse_1_i = nes_short_load(ext);
+	apu_pulse_1_c = nes_short_load(ext);
+	apu_pulse_1_v = nes_short_load(ext);
+	apu_pulse_1_m = nes_short_load(ext);
+	apu_pulse_1_r = nes_short_load(ext);
+	apu_pulse_1_s = nes_short_load(ext);
+	apu_pulse_1_a = nes_short_load(ext);
+	apu_pulse_1_n = nes_short_load(ext);
+	apu_pulse_1_p = nes_short_load(ext);
+	apu_pulse_1_w = nes_short_load(ext);
+	apu_pulse_1_e = nes_short_load(ext);
+	apu_pulse_1_t = nes_short_load(ext);
+	apu_pulse_1_k = nes_short_load(ext);
+	apu_pulse_1_l = nes_short_load(ext);
+	apu_pulse_1_o = nes_short_load(ext);
+	
+	apu_pulse_2_d = nes_short_load(ext);
+	apu_pulse_2_u = nes_short_load(ext);
+	apu_pulse_2_i = nes_short_load(ext);
+	apu_pulse_2_c = nes_short_load(ext);
+	apu_pulse_2_v = nes_short_load(ext);
+	apu_pulse_2_m = nes_short_load(ext);
+	apu_pulse_2_r = nes_short_load(ext);
+	apu_pulse_2_s = nes_short_load(ext);
+	apu_pulse_2_a = nes_short_load(ext);
+	apu_pulse_2_n = nes_short_load(ext);
+	apu_pulse_2_p = nes_short_load(ext);
+	apu_pulse_2_w = nes_short_load(ext);
+	apu_pulse_2_e = nes_short_load(ext);
+	apu_pulse_2_t = nes_short_load(ext);
+	apu_pulse_2_k = nes_short_load(ext);
+	apu_pulse_2_l = nes_short_load(ext);
+	apu_pulse_2_o = nes_short_load(ext);
+
+	apu_triangle_c = nes_short_load(ext);
+	apu_triangle_r = nes_short_load(ext);
+	apu_triangle_v = nes_short_load(ext);
+	apu_triangle_f = nes_short_load(ext);
+	apu_triangle_h = nes_short_load(ext);
+	apu_triangle_q = nes_short_load(ext);
+	apu_triangle_t = nes_short_load(ext);
+	apu_triangle_k = nes_short_load(ext);
+	apu_triangle_l = nes_short_load(ext);
+	apu_triangle_p = nes_short_load(ext);
+	apu_triangle_d = nes_short_load(ext);
+	apu_triangle_o = nes_short_load(ext);
+
+	apu_noise_i = nes_short_load(ext);
+	apu_noise_c = nes_short_load(ext);
+	apu_noise_v = nes_short_load(ext);
+	apu_noise_m = nes_short_load(ext);
+	apu_noise_r = nes_short_load(ext);
+	apu_noise_s = nes_short_load(ext);
+	apu_noise_x = nes_short_load(ext);
+	apu_noise_d = nes_short_load(ext);
+	apu_noise_t = nes_short_load(ext);
+	apu_noise_k = nes_short_load(ext);
+	apu_noise_l = nes_short_load(ext);
+	apu_noise_o = nes_short_load(ext);
+	
+	apu_dmc_i = nes_short_load(ext);
+	apu_dmc_l = nes_short_load(ext);
+	apu_dmc_r = nes_short_load(ext);
+	apu_dmc_k = nes_short_load(ext);
+	apu_dmc_d = nes_short_load(ext);
+	apu_dmc_a = nes_short_load(ext);
+	apu_dmc_s = nes_short_load(ext);
+	apu_dmc_b = nes_short_load(ext);
+	apu_dmc_t = nes_short_load(ext);
+	apu_dmc_o = nes_short_load(ext);
+
+	apu_flag_i = nes_short_load(ext);
+	apu_flag_f = nes_short_load(ext);
+	apu_flag_d = nes_short_load(ext);
+	apu_flag_n = nes_short_load(ext);
+	apu_flag_t = nes_short_load(ext);
+	apu_flag_2 = nes_short_load(ext);
+	apu_flag_1 = nes_short_load(ext);
+	apu_flag_m = nes_short_load(ext);
+	apu_flag_b = nes_short_load(ext);
+	
+	apu_counter_q = nes_short_load(ext);
+	apu_counter_s = nes_short_load(ext);
+	apu_mixer_output = nes_short_load(ext);		
+	
+	fclose(ext);
+	
+	return 1;
 }
-*/
+
 
 void nes_pixel_hdmi_raw(unsigned short pos_x, unsigned short pos_y, unsigned short color)
 {
@@ -1060,7 +1007,7 @@ void nes_buttons(const char *buttons_filename)
 	close(buttons_file);
 
 	// get key inputs
-	if (buttons_buffer[0] != '0') nes_running = 0; // exit
+//	if (buttons_buffer[0] != '0') nes_running = 0; // exit
 	if (buttons_buffer[1] != '0') ctl_value_1 = (ctl_value_1 | 0x10);
 	if (buttons_buffer[2] != '0') ctl_value_1 = (ctl_value_1 | 0x20);
 	if (buttons_buffer[3] != '0') ctl_value_1 = (ctl_value_1 | 0x40);
@@ -1069,8 +1016,53 @@ void nes_buttons(const char *buttons_filename)
 	if (buttons_buffer[6] != '0') ctl_value_1 = (ctl_value_1 | 0x08);
 	if (buttons_buffer[7] != '0') ctl_value_1 = (ctl_value_1 | 0x01);
 	if (buttons_buffer[8] != '0') ctl_value_1 = (ctl_value_1 | 0x02);
+
+	turbo_a = 0;
+	turbo_b = 0;
+
+	if (buttons_buffer[9] != '0') turbo_a = 1;
+	if (buttons_buffer[10] != '0') turbo_b = 1;
+
 	if (buttons_buffer[11] != '0') { }
-	if (buttons_buffer[12] != '0') { }
+
+	speed_limiter = 1;
+
+	if (buttons_buffer[12] != '0')
+	{
+		speed_limiter = 0;
+	}
+
+	turbo_counter++;
+
+	if (turbo_counter >= 6)
+	{
+		turbo_counter = 0;
+		turbo_state = 1 - turbo_state;
+	}
+
+	if (turbo_a > 0)
+	{
+		if (turbo_state > 0)
+		{
+			ctl_value_1 = (ctl_value_1 | 0x01);
+		}
+		else
+		{
+			ctl_value_1 = (ctl_value_1 & 0xFE);
+		}
+	}
+
+	if (turbo_b > 0)
+	{
+		if (turbo_state > 0)
+		{
+			ctl_value_1 = (ctl_value_1 | 0x02);
+		}
+		else
+		{
+			ctl_value_1 = (ctl_value_1 & 0xFD);
+		}
+	}
 }
 
 unsigned long previous_clock = 0;
@@ -3684,7 +3676,7 @@ void nes_background(unsigned long tile, unsigned long line)
 
 						if (pixel_x >= 0 && pixel_x < 256)
 						{
-							if (ppu_flag_lb > 0 || tile*8+i >= 0) 
+							if (ppu_flag_lb > 0 || tile*8+i >= 8) // or use 0???
 							{
 								if (ppu_flag_g > 0)
 								{
@@ -3714,7 +3706,7 @@ void nes_background(unsigned long tile, unsigned long line)
 
 						if (pixel_x >= 0 && pixel_x < 256)
 						{
-							if (ppu_flag_lb > 0 || tile*8+i >= 0) 
+							if (ppu_flag_lb > 0 || tile*8+i >= 8) // or use 0???
 							{
 								if (ppu_flag_g > 0)
 								{
@@ -5744,17 +5736,20 @@ debug_capture(2);
 
 		fps_counter--;
 
-		write(audio_file, &audio_buffer, 1024); // AUDIO_SAMPLES
-
-		for (int i=0; i<AUDIO_LEN; i++)
+		if (speed_limiter > 0)
 		{
-			audio_buffer[i] = 0x80;
+			write(audio_file, &audio_buffer, 1024); // AUDIO_SAMPLES
+
+			for (int i=0; i<AUDIO_LEN; i++)
+			{
+				audio_buffer[i] = 0x80; // signed
+			}
+
+			audio_read = 0;
+			audio_write = 0;
+
+			nes_wait();
 		}
-
-		audio_read = 0;
-		audio_write = 0;
-
-		nes_wait();
 		
 		ppu_frame_count++;
 		
@@ -5861,9 +5856,215 @@ int main(const int argc, const char **argv)
 		
 	nes_running = 1;
 
+	int menu_draw = 1;
+	int menu_pos = 0;
+	int menu_wait = 0;
+	unsigned long menu_clock = 0;
+	int menu_loop = 0;
+
 	while (nes_running > 0)
 	{ 
 		nes_loop(argv[2]);
+
+		if (buttons_buffer[0] != '0') // menu button
+		{
+			while (buttons_buffer[0] != '0')
+			{
+				buttons_file = open(argv[2], O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
+
+			menu_draw = 1;
+			menu_pos = 0;
+			menu_loop = 1;
+
+			while (menu_loop == 1)
+			{
+				buttons_file = open(argv[2], O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+
+				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos > 0) menu_pos--;
+				}
+				if (buttons_buffer[2] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos < 11) menu_pos++;
+				}
+
+				if (buttons_buffer[7] != '0')
+				{
+					menu_clock = clock();
+
+					if (menu_wait == 0)
+					{
+						menu_wait = 1;
+
+						menu_draw = 1;
+
+						if (menu_pos == 0)
+						{
+							menu_loop = 0;
+						}
+						else if (menu_pos == 1)
+						{
+							menu_loop = 0;
+							nes_running = 0;
+						}
+						else if (menu_pos == 2)
+						{
+							if (nes_hack_vsync_flag == 0) nes_hack_vsync_flag = 1;
+							else nes_hack_vsync_flag = 0;
+						}
+						else if (menu_pos == 3)
+						{
+							if (nes_hack_sprite_priority == 0) nes_hack_sprite_priority = 1;
+							else nes_hack_sprite_priority = 0;
+						}
+						else if (menu_pos == 4)
+						{
+							nes_ram_save("PICnes/PICNES-RAM-FILE-A.SAV");
+			
+							menu_loop = 0;
+						}
+						else if (menu_pos == 5)
+						{
+							nes_ram_save("PICnes/PICNES-RAM-FILE-B.SAV");
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 6)
+						{
+							nes_state_save("PICnes/PICNES-STATE-FILE-C.SAV");
+			
+							menu_loop = 0;
+						}
+						else if (menu_pos == 7)
+						{
+							nes_state_save("PICnes/PICNES-STATE-FILE-D.SAV");
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 8)
+						{
+							nes_ram_load("PICnes/PICNES-RAM-FILE-A.SAV");
+
+							nes_reset_flag = 0;
+
+							nes_init();
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 9)
+						{
+							nes_ram_load("PICnes/PICNES-RAM-FILE-B.SAV");
+
+							nes_reset_flag = 0;
+
+							nes_init();
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 10)
+						{
+							nes_state_load("PICnes/PICNES-STATE-FILE-C.SAV");
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 11)
+						{
+							nes_state_load("PICnes/PICNES-STATE-FILE-D.SAV");
+
+							menu_loop = 0;
+						}
+					}
+				}
+				else
+				{
+					if (clock() > menu_clock + 100000)
+					{
+						menu_wait = 0;
+					}
+				}
+
+				if (menu_draw == 1)
+				{
+					menu_draw = 0;
+
+					system("clear");
+
+					printf("PICnes Menu\n\n");
+
+					if (menu_pos == 0) printf("> ");
+					else printf("  ");
+					printf("Return\n");
+
+					if (menu_pos == 1) printf("> ");
+					else printf("  ");
+					printf("Exit\n");
+
+					if (menu_pos == 2) printf("> ");
+					else printf("  ");
+					if (nes_hack_vsync_flag == 0) printf("V-Sync Hack = Disabled\n");
+					else printf("V-Sync Hack = Enabled\n");
+
+					if (menu_pos == 3) printf("> ");
+					else printf("  ");
+					if (nes_hack_sprite_priority == 0) printf("Sprite Hack = Disabled\n");
+					else printf("Sprite Hack = Enabled\n");
+
+					if (menu_pos == 4) printf("> ");
+					else printf("  ");
+					printf("Save RAM File A\n");
+
+					if (menu_pos == 5) printf("> ");
+					else printf("  ");
+					printf("Save RAM File B\n");
+
+					if (menu_pos == 6) printf("> ");
+					else printf("  ");
+					printf("Save State File C\n");
+
+					if (menu_pos == 7) printf("> ");
+					else printf("  ");
+					printf("Save State File D\n");
+
+					if (menu_pos == 8) printf("> ");
+					else printf("  ");
+					printf("Load RAM File A\n");
+
+					if (menu_pos == 9) printf("> ");
+					else printf("  ");
+					printf("Load RAM File B\n");
+
+					if (menu_pos == 10) printf("> ");
+					else printf("  ");
+					printf("Load State File C\n");
+
+					if (menu_pos == 11) printf("> ");
+					else printf("  ");
+					printf("Load State File D\n");
+				}
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty		
+		}
 	}
 
 	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
