@@ -6484,14 +6484,16 @@ int main(int argc, char* argv[]) {
 						else if (menu_pos == 4)
 						{
 							read_ram_file("gdkGBA/GDKGBA-RAM-FILE-A.SAV");
-							arm_reset();
+							//arm_reset();
+							key_input.w = 0x00F0; // internal reset
 
 							menu_loop = 0;
 						}
 						else if (menu_pos == 5)
 						{
 							read_ram_file("gdkGBA/GDKGBA-RAM-FILE-B.SAV");
-							arm_reset();
+							//arm_reset();
+							key_input.w = 0x00F0; // internal reset
 
 							menu_loop = 0;
 						}
