@@ -5146,6 +5146,8 @@ void lcd_draw_line(struct gb_s *gb,
 }
 #endif
 
+int tty_file = 0;
+
 // DMG: core = 0
 // GBC: core = 1
 int PeanutGB(unsigned char core, const char *buttons_filename)
@@ -5283,11 +5285,15 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 
 	auto_assign_palette(gb_colour_hash(&gb), palette_num); // default
 	
+	int menu_draw = 1;
+	int menu_pos = 0;
+	int menu_wait = 0;
+	unsigned long menu_clock = 0;
+	int menu_loop = 0;
+
 	unsigned long previous_clock = 0;
 
 	unsigned char infinite_loop = 1;
-
-	unsigned char left_bumper = 0;
 
 	while (infinite_loop > 0)
 	{
@@ -5302,8 +5308,6 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 
 		speed_limiter = 1; // normal speed by default
 
-		left_bumper = 0;
-
 		turbo_a = 0;
 		turbo_b = 0;
 
@@ -5312,7 +5316,7 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 		close(buttons_file);
 
 		// get key inputs
-		if (buttons_buffer[0] != '0') infinite_loop = 0; // exit
+		//if (buttons_buffer[0] != '0') infinite_loop = 0; // exit
 		if (buttons_buffer[1] != '0') gb.direct.joypad &= ~JOYPAD_UP;
 		if (buttons_buffer[2] != '0') gb.direct.joypad &= ~JOYPAD_DOWN;
 		if (buttons_buffer[3] != '0') gb.direct.joypad &= ~JOYPAD_LEFT;
@@ -5325,25 +5329,144 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 		if (buttons_buffer[9] != '0') turbo_a = 1;
 		if (buttons_buffer[10] != '0') turbo_b = 1;
 
-		if (buttons_buffer[11] != '0')
-		{
-			left_bumper = 1;
-
-			if (buttons_buffer[7] != '0')
-			{
-				gb_write_cart_ram_file("cart_ram.sav");
-			}
-
-			if (buttons_buffer[8] != '0')
-			{
-				gb_read_cart_ram_file("cart_ram.sav");
-				gb_reset(&gb);
-			}
-		}
-
+		if (buttons_buffer[11] != '0') { }
 		if (buttons_buffer[12] != '0')
 		{
 			speed_limiter = 0;
+		}
+
+		if (buttons_buffer[0] != '0') // menu
+		{
+			while (buttons_buffer[0] != '0')
+			{
+				buttons_file = open(buttons_filename, O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
+
+			menu_draw = 1;
+			menu_pos = 0;
+			menu_loop = 1;
+
+			while (menu_loop == 1)
+			{
+				buttons_file = open(buttons_filename, O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+
+				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos > 0) menu_pos--;
+				}
+				if (buttons_buffer[2] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos < 5) menu_pos++;
+				}
+
+				if (buttons_buffer[7] != '0')
+				{
+					menu_clock = clock();
+
+					if (menu_wait == 0)
+					{
+						menu_wait = 1;
+
+						menu_draw = 1;
+
+						if (menu_pos == 0)
+						{
+							menu_loop = 0;
+						}
+						else if (menu_pos == 1)
+						{
+							menu_loop = 0;
+							infinite_loop = 0;
+						}
+						else if (menu_pos == 2)
+						{
+							gb_write_cart_ram_file("PeanutGB/PEANUTGB-RAM-FILE-A.SAV");
+			
+							menu_loop = 0;
+						}
+						else if (menu_pos == 3)
+						{
+							gb_write_cart_ram_file("PeanutGB/PEANUTGB-RAM-FILE-B.SAV");
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 4)
+						{
+							gb_read_cart_ram_file("PeanutGB/PEANUTGB-RAM-FILE-A.SAV");
+							gb_reset(&gb);
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 5)
+						{
+							gb_read_cart_ram_file("PeanutGB/PEANUTGB-RAM-FILE-B.SAV");
+							gb_reset(&gb);
+
+							menu_loop = 0;
+						}
+					}
+				}
+				else
+				{
+					if (clock() > menu_clock + 100000)
+					{
+						menu_wait = 0;
+					}
+				}
+
+				if (menu_draw == 1)
+				{
+					menu_draw = 0;
+
+					system("clear");
+
+					printf("PeanutGB Menu\n\n");
+
+					if (menu_pos == 0) printf("> ");
+					else printf("  ");
+					printf("Return\n");
+
+					if (menu_pos == 1) printf("> ");
+					else printf("  ");
+					printf("Exit\n");
+
+					if (menu_pos == 2) printf("> ");
+					else printf("  ");
+					printf("Save RAM File A\n");
+
+					if (menu_pos == 3) printf("> ");
+					else printf("  ");
+					printf("Save RAM File B\n");
+
+					if (menu_pos == 4) printf("> ");
+					else printf("  ");
+					printf("Load RAM File A\n");
+
+					if (menu_pos == 5) printf("> ");
+					else printf("  ");
+					printf("Load RAM File B\n");
+				}
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty		
 		}
 
 		turbo_counter++;
@@ -5378,18 +5501,6 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 			}
 		}
 
-		if (left_bumper > 0)
-		{
-			gb.direct.joypad |= JOYPAD_UP;
-			gb.direct.joypad |= JOYPAD_DOWN;
-			gb.direct.joypad |= JOYPAD_LEFT;
-			gb.direct.joypad |= JOYPAD_RIGHT;
-			gb.direct.joypad |= JOYPAD_SELECT;
-			gb.direct.joypad |= JOYPAD_START;
-			gb.direct.joypad |= JOYPAD_A;
-			gb.direct.joypad |= JOYPAD_B;
-		}
-
 		/* Execute CPU cycles until the screen has to be redrawn. */
 		gb_run_frame(&gb);
 
@@ -5416,9 +5527,6 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 		// delay
 		if (speed_limiter > 0)
 		{
-			while (clock() < previous_clock + 16743 - 250) { } // for 59.73 Hz, minus 300
-			previous_clock = clock();
-
 #ifdef ENABLE_SOUND
 			if (audio_enable > 0)
 			{
@@ -5426,6 +5534,8 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 				write(sound_file, &audio_buffer, 1024); // AUDIO_SAMPLES
 			}
 #endif
+			while (clock() < previous_clock + 16743 - 250) { } // for 59.73 Hz, minus 300
+			previous_clock = clock();
 		}
 	}
 
@@ -5510,7 +5620,7 @@ int main(const int argc, const char **argv)
 	system("tty > temp.val");
 	system("echo \"                \" >> temp.val");
 
-	int tty_file = open("temp.val", O_RDWR);
+	tty_file = open("temp.val", O_RDWR);
 	read(tty_file, &tty_name, 16);
 	close(tty_file);
 
@@ -5529,8 +5639,8 @@ int main(const int argc, const char **argv)
 	// this sets the volume, change accordingly
 	//system("amixer set Master 50%");
 
-	//PeanutGB(0); // DMG
-	PeanutGB(1, argv[2]); // GBC
+	//PeanutGB(0, argv[2]); // DMG only
+	PeanutGB(1, argv[2]); // GBC or DMG
 
 	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
 	close(tty_file);
