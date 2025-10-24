@@ -135,7 +135,7 @@ int main()
 		//printf("%s\n", string);
 		system(string);
 
-		if (button[0] != '0') break;
+		//if (button[0] != '0') break;
 	}
 
 	gpioTerminate();

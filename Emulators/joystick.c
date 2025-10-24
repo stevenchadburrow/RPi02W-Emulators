@@ -29,10 +29,9 @@ int main()
 
 			//printf("%08X %02X %02X\n", js.value, js.type, js.number);
 
-			if (joy_ev.type == 1 && joy_ev.number == 8 && 
-				(unsigned char)joy_ev.value > 0) // center button for EXIT
+			if (joy_ev.type == 1 && joy_ev.number == 8) // center button for MENU
 			{
-				button[0] = '1';
+				button[0] = (char)((unsigned char)joy_ev.value + '0');
 			}
 			else if (joy_ev.type == 2 && joy_ev.number == 7) // up/down
 			{
@@ -113,7 +112,7 @@ int main()
 			//printf("%s\n", string);
 			system(string);
 
-			if (button[0] != '0') break;
+			//if (button[0] != '0') break;
 		}
 	}
 

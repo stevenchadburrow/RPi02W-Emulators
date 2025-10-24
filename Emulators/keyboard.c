@@ -49,9 +49,9 @@ int main()
 
 			//printf("%d %d\n", keys_ev.code, keys_ev.value); // just for testing
 
-			if (keys_ev.code == 1 && (unsigned char)keys_ev.value > 0) // escape to EXIT
+			if (keys_ev.code == 1) // escape for MENU
 			{
-				button[0] = '1';
+				button[0] = (char)((unsigned char)keys_ev.value + '0');
 			}
 			else if (keys_ev.code == 17) // w for UP
 			{
@@ -112,7 +112,7 @@ int main()
 			//printf("%s\n", string);
 			system(string);
 
-			if (button[0] != '0') break;
+			//if (button[0] != '0') break;
 		}
 	}
 

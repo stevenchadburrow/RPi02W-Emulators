@@ -8,6 +8,10 @@
 
 int main()
 {
+	system("echo \"0000000000000\" > keyboard.val");
+	system("echo \"0000000000000\" > joystick.val");
+	system("echo \"0000000000000\" > buttons.val");
+
 	int select = 0;
 	int total = 0;
 	char list[1000][64];
@@ -128,18 +132,7 @@ int main()
 
 		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
 
-/*
-		// for testing on desktop
-		char temp = 0;
-		scanf("%c", &temp);
-		if (temp == 'w') button[1] = '1';
-		else if (temp == 's') button[2] = '1';
-		else if (temp == 'k') button[7] = '1';
-		else if (temp == 'j') button[8] = '1';
-		prev_clock = clock() - 100000;
-*/
-
-		if (button[0] == '1') // menu
+		if (button[5] == '1' || button[6] == '1') // select/start
 		{
 			system("echo '' > game.sh");
 
@@ -281,10 +274,6 @@ int main()
 			redraw = 1;
 		}
 	}
-
-	system("echo \"0000000000000\" > keyboard.val");
-	system("echo \"0000000000000\" > joystick.val");
-	system("echo \"0000000000000\" > buttons.val");
 
 	return 1;
 }

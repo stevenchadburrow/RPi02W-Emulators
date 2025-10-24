@@ -22,6 +22,12 @@ echo "Changing /dev/stdin to Read-Write"
 
 stty echo
 
+sudo pkill keyboard.o
+sudo pkill joystick.o
+sudo pkill buttons.o
+
+
+
 
 
 
