@@ -54,8 +54,10 @@ int fps_graphics = 0;
 int fps_audio = 0;
 int fps_wait = 0;
 
-//#include <SDL2/SDL.h>
-//#include <SDL2/SDL_audio.h>
+unsigned char turbo_state = 0;
+unsigned long turbo_counter = 0;
+unsigned char turbo_a = 0;
+unsigned char turbo_b = 0;
 
 // arm.h / arm.c
 
@@ -743,10 +745,10 @@ void wave_reset() {
 }
 
 void sound_buffer_wrap() {
-    /*
-     * This prevents the cursor from overflowing
-     * Call after some time (like per frame, or per second...)
-     */
+  
+    // This prevents the cursor from overflowing
+    // Call after some time (like per frame, or per second...)
+    
     if ((snd_cur_play / BUFF_SAMPLES) == (snd_cur_write / BUFF_SAMPLES)) {
         snd_cur_play  &= BUFF_SAMPLES_MSK;
         snd_cur_write &= BUFF_SAMPLES_MSK;
@@ -2305,9 +2307,6 @@ void arm_write_s(uint32_t address, uint32_t value) {
     arm_write(address, value);
 }
 
-/*
- * Utils
- */
 
 static void arm_flag_set(uint32_t flag, bool cond) {
     if (cond)
@@ -5521,17 +5520,16 @@ void arm_int(uint32_t address, int8_t mode) {
         address == ARM_VEC_RESET)
         arm_flag_set(ARM_F, true);
 
-    /*
-     * Adjust PC based on exception
-     *
-     * Exc  ARM  Thumb
-     * DA   $+8  $+8
-     * FIQ  $+4  $+4
-     * IRQ  $+4  $+4
-     * PA   $+4  $+4
-     * UND  $+4  $+2
-     * SVC  $+4  $+2
-     */
+    
+     //Adjust PC based on exception
+     //Exc  ARM  Thumb
+     //DA   $+8  $+8
+     //FIQ  $+4  $+4
+     //IRQ  $+4  $+4
+     //PA   $+4  $+4
+     //UND  $+4  $+2
+     //SVC  $+4  $+2
+    
     if (address == ARM_VEC_UND ||
         address == ARM_VEC_SVC) {
         if (arm_in_thumb())
@@ -6160,6 +6158,61 @@ static uint32_t to_pow2(uint32_t val) {
     return val + 1;
 }
 
+int write_ram_file(const char *filename)
+{
+	FILE *ext = NULL;
+
+	ext = fopen(filename, "wb");
+	if (!ext) return 0;
+
+	for (unsigned long i=0; i<0x00020000; i++)
+	{
+		fprintf(ext, "%c", flash[i]);
+	}
+
+	for (unsigned long i=0; i<0x00002000; i++)
+	{
+		fprintf(ext, "%c", eeprom[i]);
+	}
+
+	for (unsigned long i=0; i<0x00010000; i++)
+	{
+		fprintf(ext, "%c", sram[i]);
+	}
+
+	fclose(ext);
+
+	return 1;
+}
+
+int read_ram_file(const char *filename)
+{
+	FILE *ext = NULL;
+
+	ext = fopen(filename, "rb");
+	if (!ext) return 0;
+
+	for (unsigned long i=0; i<0x00020000; i++)
+	{
+		fscanf(ext, "%c", &flash[i]);
+	}
+
+	for (unsigned long i=0; i<0x00002000; i++)
+	{
+		fscanf(ext, "%c", &eeprom[i]);
+	}
+
+	for (unsigned long i=0; i<0x00010000; i++)
+	{
+		fscanf(ext, "%c", &sram[i]);
+	}
+
+	fclose(ext);
+
+	return 1;
+}
+
+
 int main(int argc, char* argv[]) {
     printf("gdkGBA - Gameboy Advance emulator made by gdkchan\n");
     printf("This is FREE software released into the PUBLIC DOMAIN\n\n");
@@ -6282,6 +6335,12 @@ int main(int argc, char* argv[]) {
 
 	unsigned long previous_clock = 0;
 
+	int menu_draw = 1;
+	int menu_pos = 0;
+	int menu_wait = 0;
+	unsigned long menu_clock = 0;
+	int menu_loop = 0;
+
     while (run) {
         run_frame();
 
@@ -6301,7 +6360,7 @@ int main(int argc, char* argv[]) {
 		close(buttons_file);
 
 		// get key inputs
-		if (buttons_buffer[0] != '0') run = false; // exit
+		//if (buttons_buffer[0] != '0') run = false; // exit
 		if (buttons_buffer[1] != '0') key_input.w &= ~BTN_U;
 		if (buttons_buffer[2] != '0') key_input.w &= ~BTN_D;
 		if (buttons_buffer[3] != '0') key_input.w &= ~BTN_L;
@@ -6312,6 +6371,179 @@ int main(int argc, char* argv[]) {
 		if (buttons_buffer[8] != '0') key_input.w &= ~BTN_B;
 		if (buttons_buffer[11] != '0') key_input.w &= ~BTN_LT;
 		if (buttons_buffer[12] != '0') key_input.w &= ~BTN_RT;
+
+		turbo_a = 0;
+		turbo_b = 0;
+
+		if (buttons_buffer[9] != '0') turbo_a = 1;
+		if (buttons_buffer[10] != '0') turbo_b = 1;
+
+		turbo_counter++;
+
+		if (turbo_counter >= 6)
+		{
+			turbo_counter = 0;
+			turbo_state = 1 - turbo_state;
+		}
+
+		if (turbo_a > 0)
+		{
+			if (turbo_state > 0)
+			{
+				key_input.w &= ~BTN_A;
+			}
+			else
+			{
+				key_input.w |= BTN_A;
+			}
+		}
+
+		if (turbo_b > 0)
+		{
+			if (turbo_state > 0)
+			{
+				key_input.w &= ~BTN_B;
+			}
+			else
+			{
+				key_input.w |= BTN_B;
+			}
+		}
+		
+		if (buttons_buffer[0] != '0') // menu
+		{
+			while (buttons_buffer[0] != '0')
+			{
+				buttons_file = open(argv[2], O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
+
+			menu_draw = 1;
+			menu_pos = 0;
+			menu_loop = 1;
+
+			while (menu_loop == 1)
+			{
+				buttons_file = open(argv[2], O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+
+				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos > 0) menu_pos--;
+				}
+				if (buttons_buffer[2] != '0' && clock() > menu_clock + 100000)
+				{
+					menu_clock = clock();
+
+					menu_draw = 1;
+
+					if (menu_pos < 5) menu_pos++;
+				}
+
+				if (buttons_buffer[7] != '0')
+				{
+					menu_clock = clock();
+
+					if (menu_wait == 0)
+					{
+						menu_wait = 1;
+
+						menu_draw = 1;
+
+						if (menu_pos == 0)
+						{
+							menu_loop = 0;
+						}
+						else if (menu_pos == 1)
+						{
+							menu_loop = 0;
+							run = false;
+						}
+						else if (menu_pos == 2)
+						{
+							write_ram_file("gdkGBA/GDKGBA-RAM-FILE-A.SAV");
+			
+							menu_loop = 0;
+						}
+						else if (menu_pos == 3)
+						{
+							write_ram_file("gdkGBA/GDKGBA-RAM-FILE-B.SAV");
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 4)
+						{
+							read_ram_file("gdkGBA/GDKGBA-RAM-FILE-A.SAV");
+							arm_reset();
+
+							menu_loop = 0;
+						}
+						else if (menu_pos == 5)
+						{
+							read_ram_file("gdkGBA/GDKGBA-RAM-FILE-B.SAV");
+							arm_reset();
+
+							menu_loop = 0;
+						}
+					}
+				}
+				else
+				{
+					if (clock() > menu_clock + 100000)
+					{
+						menu_wait = 0;
+					}
+				}
+
+				if (menu_draw == 1)
+				{
+					menu_draw = 0;
+
+					system("clear");
+
+					printf("gdkGBA Menu\n\n");
+
+					if (menu_pos == 0) printf("> ");
+					else printf("  ");
+					printf("Return\n");
+
+					if (menu_pos == 1) printf("> ");
+					else printf("  ");
+					printf("Exit\n");
+
+					if (menu_pos == 2) printf("> ");
+					else printf("  ");
+					printf("Save RAM File A\n");
+
+					if (menu_pos == 3) printf("> ");
+					else printf("  ");
+					printf("Save RAM File B\n");
+
+					if (menu_pos == 4) printf("> ");
+					else printf("  ");
+					printf("Load RAM File A\n");
+
+					if (menu_pos == 5) printf("> ");
+					else printf("  ");
+					printf("Load RAM File B\n");
+				}
+			}
+
+			system("sleep 1 ; clear");
+
+			ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty		
+		}
+		
 
 		if (fps_graphics > 0)
 		{
