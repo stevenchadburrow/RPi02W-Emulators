@@ -37,8 +37,10 @@ unsigned long turbo_counter = 0;
 unsigned char turbo_a = 0;
 unsigned char turbo_b = 0;
 
+unsigned char nes_players = 1; // default to 1 player
 
 unsigned char nes_running = 1; // when 0, exits game
+unsigned char nes_menu = 0; // when 1, goes to menu
 
 unsigned char cart_rom[0x1000000]; // 1 MB max?
 unsigned char sys_ram[8192]; // used for NES
@@ -994,7 +996,7 @@ void nes_sound(unsigned char sample)
 	}
 }
 	
-void nes_buttons(const char *buttons_filename)
+void nes_buttons()
 {
 	//ctl_value_1 = 0xFF080000 | (controller_status_3 << 8) | controller_status_1;
 	//ctl_value_2 = 0xFF040000 | (controller_status_4 << 8) | controller_status_2;
@@ -1002,35 +1004,7 @@ void nes_buttons(const char *buttons_filename)
 	ctl_value_1 = 0xFF080000;
 	ctl_value_2 = 0xFF040000;
 
-	buttons_file = open(buttons_filename, O_RDONLY);
-	read(buttons_file, &buttons_buffer, 13);
-	close(buttons_file);
-
-	// get key inputs
-//	if (buttons_buffer[0] != '0') nes_running = 0; // exit
-	if (buttons_buffer[1] != '0') ctl_value_1 = (ctl_value_1 | 0x10);
-	if (buttons_buffer[2] != '0') ctl_value_1 = (ctl_value_1 | 0x20);
-	if (buttons_buffer[3] != '0') ctl_value_1 = (ctl_value_1 | 0x40);
-	if (buttons_buffer[4] != '0') ctl_value_1 = (ctl_value_1 | 0x80);
-	if (buttons_buffer[5] != '0') ctl_value_1 = (ctl_value_1 | 0x04);
-	if (buttons_buffer[6] != '0') ctl_value_1 = (ctl_value_1 | 0x08);
-	if (buttons_buffer[7] != '0') ctl_value_1 = (ctl_value_1 | 0x01);
-	if (buttons_buffer[8] != '0') ctl_value_1 = (ctl_value_1 | 0x02);
-
-	turbo_a = 0;
-	turbo_b = 0;
-
-	if (buttons_buffer[9] != '0') turbo_a = 1;
-	if (buttons_buffer[10] != '0') turbo_b = 1;
-
-	if (buttons_buffer[11] != '0') { }
-
 	speed_limiter = 1;
-
-	if (buttons_buffer[12] != '0')
-	{
-		speed_limiter = 0;
-	}
 
 	turbo_counter++;
 
@@ -1040,27 +1014,222 @@ void nes_buttons(const char *buttons_filename)
 		turbo_state = 1 - turbo_state;
 	}
 
-	if (turbo_a > 0)
+	// player 1
+	for (int round=0; round<6; round++)
 	{
-		if (turbo_state > 0)
+		for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+		if (round == 0)
 		{
-			ctl_value_1 = (ctl_value_1 | 0x01);
+			buttons_file = open("buttons1.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
 		}
-		else
+		else if (round == 1)
 		{
-			ctl_value_1 = (ctl_value_1 & 0xFE);
+			buttons_file = open("buttons2.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 2)
+		{
+			if (nes_players > 1) continue;
+
+			buttons_file = open("joystick1.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 3)
+		{
+			if (nes_players > 1) continue;
+
+			buttons_file = open("joystick2.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 4)
+		{
+			if (nes_players > 1) continue;
+
+			buttons_file = open("keyboard1.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 5)
+		{
+			if (nes_players > 1) continue;
+
+			buttons_file = open("keyboard2.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+
+		if (buttons_buffer[0] != '0') nes_menu = 1; // menu
+		if (buttons_buffer[1] != '0') ctl_value_1 = (ctl_value_1 | 0x10);
+		if (buttons_buffer[2] != '0') ctl_value_1 = (ctl_value_1 | 0x20);
+		if (buttons_buffer[3] != '0') ctl_value_1 = (ctl_value_1 | 0x40);
+		if (buttons_buffer[4] != '0') ctl_value_1 = (ctl_value_1 | 0x80);
+		if (buttons_buffer[5] != '0') ctl_value_1 = (ctl_value_1 | 0x04);
+		if (buttons_buffer[6] != '0') ctl_value_1 = (ctl_value_1 | 0x08);
+		if (buttons_buffer[7] != '0') ctl_value_1 = (ctl_value_1 | 0x01);
+		if (buttons_buffer[8] != '0') ctl_value_1 = (ctl_value_1 | 0x02);
+
+		turbo_a = 0;
+		turbo_b = 0;
+
+		if (buttons_buffer[9] != '0') turbo_a = 1;
+		if (buttons_buffer[10] != '0') turbo_b = 1;
+
+		if (buttons_buffer[11] != '0') { }
+
+		if (buttons_buffer[12] != '0')
+		{
+			speed_limiter = 0;
+		}
+
+		if (turbo_a > 0)
+		{
+			if (turbo_state > 0)
+			{
+				ctl_value_1 = (ctl_value_1 | 0x01);
+			}
+			else
+			{
+				ctl_value_1 = (ctl_value_1 & 0xFE);
+			}
+		}
+
+		if (turbo_b > 0)
+		{
+			if (turbo_state > 0)
+			{
+				ctl_value_1 = (ctl_value_1 | 0x02);
+			}
+			else
+			{
+				ctl_value_1 = (ctl_value_1 & 0xFD);
+			}
 		}
 	}
 
-	if (turbo_b > 0)
+
+	// player 2
+	for (int round=0; round<6; round++)
 	{
-		if (turbo_state > 0)
+		for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+		if (round == 0)
 		{
-			ctl_value_1 = (ctl_value_1 | 0x02);
+			continue;
 		}
-		else
+		else if (round == 1)
 		{
-			ctl_value_1 = (ctl_value_1 & 0xFD);
+			continue;
+		}
+		else if (round == 2)
+		{
+			if (nes_players == 1) continue;
+
+			buttons_file = open("joystick1.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 3)
+		{
+			if (nes_players == 1) continue;
+
+			buttons_file = open("joystick2.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 4)
+		{
+			if (nes_players == 1) continue;
+
+			buttons_file = open("keyboard1.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		else if (round == 5)
+		{
+			if (nes_players == 1) continue;
+
+			buttons_file = open("keyboard2.val", O_RDONLY);
+			if (buttons_file >= 0)
+			{
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+		}
+		
+		if (buttons_buffer[0] != '0') nes_menu = 1; // menu
+		if (buttons_buffer[1] != '0') ctl_value_2 = (ctl_value_2 | 0x10);
+		if (buttons_buffer[2] != '0') ctl_value_2 = (ctl_value_2 | 0x20);
+		if (buttons_buffer[3] != '0') ctl_value_2 = (ctl_value_2 | 0x40);
+		if (buttons_buffer[4] != '0') ctl_value_2 = (ctl_value_2 | 0x80);
+		if (buttons_buffer[5] != '0') ctl_value_2 = (ctl_value_2 | 0x04);
+		if (buttons_buffer[6] != '0') ctl_value_2 = (ctl_value_2 | 0x08);
+		if (buttons_buffer[7] != '0') ctl_value_2 = (ctl_value_2 | 0x01);
+		if (buttons_buffer[8] != '0') ctl_value_2 = (ctl_value_2 | 0x02);
+
+		turbo_a = 0;
+		turbo_b = 0;
+
+		if (buttons_buffer[9] != '0') turbo_a = 1;
+		if (buttons_buffer[10] != '0') turbo_b = 1;
+
+		if (buttons_buffer[11] != '0') { }
+		if (buttons_buffer[12] != '0') { }
+
+		if (turbo_a > 0)
+		{
+			if (turbo_state > 0)
+			{
+				ctl_value_2 = (ctl_value_2 | 0x01);
+			}
+			else
+			{
+				ctl_value_2 = (ctl_value_2 & 0xFE);
+			}
+		}
+
+		if (turbo_b > 0)
+		{
+			if (turbo_state > 0)
+			{
+				ctl_value_2 = (ctl_value_2 | 0x02);
+			}
+			else
+			{
+				ctl_value_2 = (ctl_value_2 & 0xFD);
+			}
 		}
 	}
 }
@@ -5392,7 +5561,7 @@ void nes_init()
 	}
 }
 
-void nes_loop(const char *buttons_filename)
+void nes_loop()
 {	
 	if (nes_loop_option > 0 && nes_loop_halt == 0)
 	{
@@ -5714,7 +5883,7 @@ debug_capture(2);
 
 		nes_loop_halt = 0; // turn CPU back on
 
-		nes_buttons(buttons_filename);
+		nes_buttons();
 
 		if (fps_counter == 0)
 		{
@@ -5762,9 +5931,9 @@ int main(const int argc, const char **argv)
 {
 	printf("PICnes, by Professor Steven Chad Burrow\n");
 
-	if (argc < 3)
+	if (argc < 2)
 	{
-		printf("Arguments: <ROM file> <button file>\n");
+		printf("Arguments: <ROM file>\n");
 	
 		return 0;
 	}
@@ -5864,15 +6033,64 @@ int main(const int argc, const char **argv)
 
 	while (nes_running > 0)
 	{ 
-		nes_loop(argv[2]);
+		nes_loop();
 
-		if (buttons_buffer[0] != '0') // menu button
+		if (nes_menu > 0) // menu button
 		{
+			nes_menu = 0;
+
+			char buttons_array[13];
+
+			buttons_buffer[0] = '1';
+
 			while (buttons_buffer[0] != '0')
 			{
-				buttons_file = open(argv[2], O_RDONLY);
-				read(buttons_file, &buttons_buffer, 13);
-				close(buttons_file);
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 			}
 
 			system("sleep 1 ; clear");
@@ -5885,9 +6103,52 @@ int main(const int argc, const char **argv)
 
 			while (menu_loop == 1)
 			{
-				buttons_file = open(argv[2], O_RDONLY);
-				read(buttons_file, &buttons_buffer, 13);
-				close(buttons_file);
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 
 				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
 				{
@@ -5903,7 +6164,7 @@ int main(const int argc, const char **argv)
 
 					menu_draw = 1;
 
-					if (menu_pos < 11) menu_pos++;
+					if (menu_pos < 12) menu_pos++;
 				}
 
 				if (buttons_buffer[7] != '0')
@@ -5927,39 +6188,45 @@ int main(const int argc, const char **argv)
 						}
 						else if (menu_pos == 2)
 						{
+							nes_players++;
+				
+							if (nes_players > 2) nes_players = 1;
+						}
+						else if (menu_pos == 3)
+						{
 							if (nes_hack_vsync_flag == 0) nes_hack_vsync_flag = 1;
 							else nes_hack_vsync_flag = 0;
 						}
-						else if (menu_pos == 3)
+						else if (menu_pos == 4)
 						{
 							if (nes_hack_sprite_priority == 0) nes_hack_sprite_priority = 1;
 							else nes_hack_sprite_priority = 0;
 						}
-						else if (menu_pos == 4)
+						else if (menu_pos == 5)
 						{
 							nes_ram_save("PICnes/PICNES-RAM-FILE-A.SAV");
 			
 							menu_loop = 0;
 						}
-						else if (menu_pos == 5)
+						else if (menu_pos == 6)
 						{
 							nes_ram_save("PICnes/PICNES-RAM-FILE-B.SAV");
 
 							menu_loop = 0;
 						}
-						else if (menu_pos == 6)
+						else if (menu_pos == 7)
 						{
 							nes_state_save("PICnes/PICNES-STATE-FILE-C.SAV");
 			
 							menu_loop = 0;
 						}
-						else if (menu_pos == 7)
+						else if (menu_pos == 8)
 						{
 							nes_state_save("PICnes/PICNES-STATE-FILE-D.SAV");
 
 							menu_loop = 0;
 						}
-						else if (menu_pos == 8)
+						else if (menu_pos == 9)
 						{
 							nes_ram_load("PICnes/PICNES-RAM-FILE-A.SAV");
 
@@ -5969,7 +6236,7 @@ int main(const int argc, const char **argv)
 
 							menu_loop = 0;
 						}
-						else if (menu_pos == 9)
+						else if (menu_pos == 10)
 						{
 							nes_ram_load("PICnes/PICNES-RAM-FILE-B.SAV");
 
@@ -5979,13 +6246,13 @@ int main(const int argc, const char **argv)
 
 							menu_loop = 0;
 						}
-						else if (menu_pos == 10)
+						else if (menu_pos == 11)
 						{
 							nes_state_load("PICnes/PICNES-STATE-FILE-C.SAV");
 
 							menu_loop = 0;
 						}
-						else if (menu_pos == 11)
+						else if (menu_pos == 12)
 						{
 							nes_state_load("PICnes/PICNES-STATE-FILE-D.SAV");
 
@@ -6019,43 +6286,47 @@ int main(const int argc, const char **argv)
 
 					if (menu_pos == 2) printf("> ");
 					else printf("  ");
+					printf("Players = %d\n", nes_players);
+
+					if (menu_pos == 3) printf("> ");
+					else printf("  ");
 					if (nes_hack_vsync_flag == 0) printf("V-Sync Hack = Disabled\n");
 					else printf("V-Sync Hack = Enabled\n");
 
-					if (menu_pos == 3) printf("> ");
+					if (menu_pos == 4) printf("> ");
 					else printf("  ");
 					if (nes_hack_sprite_priority == 0) printf("Sprite Hack = Disabled\n");
 					else printf("Sprite Hack = Enabled\n");
 
-					if (menu_pos == 4) printf("> ");
+					if (menu_pos == 5) printf("> ");
 					else printf("  ");
 					printf("Save RAM File A\n");
 
-					if (menu_pos == 5) printf("> ");
+					if (menu_pos == 6) printf("> ");
 					else printf("  ");
 					printf("Save RAM File B\n");
 
-					if (menu_pos == 6) printf("> ");
+					if (menu_pos == 7) printf("> ");
 					else printf("  ");
 					printf("Save State File C\n");
 
-					if (menu_pos == 7) printf("> ");
+					if (menu_pos == 8) printf("> ");
 					else printf("  ");
 					printf("Save State File D\n");
 
-					if (menu_pos == 8) printf("> ");
+					if (menu_pos == 9) printf("> ");
 					else printf("  ");
 					printf("Load RAM File A\n");
 
-					if (menu_pos == 9) printf("> ");
+					if (menu_pos == 10) printf("> ");
 					else printf("  ");
 					printf("Load RAM File B\n");
 
-					if (menu_pos == 10) printf("> ");
+					if (menu_pos == 11) printf("> ");
 					else printf("  ");
 					printf("Load State File C\n");
 
-					if (menu_pos == 11) printf("> ");
+					if (menu_pos == 12) printf("> ");
 					else printf("  ");
 					printf("Load State File D\n");
 				}
