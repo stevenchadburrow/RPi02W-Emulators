@@ -8,12 +8,13 @@
 
 int main()
 {
-	system("echo \"0000000000000\" > keyboard1.val");
-	system("echo \"0000000000000\" > keyboard2.val");
-	system("echo \"0000000000000\" > joystick1.val");
-	system("echo \"0000000000000\" > joystick2.val");
 	system("echo \"0000000000000\" > buttons1.val");
 	system("echo \"0000000000000\" > buttons2.val");
+	system("echo \"0000000000000\" > joystick1.val");
+	system("echo \"0000000000000\" > joystick2.val");
+	system("echo \"0000000000000\" > keyboard1.val");
+	system("echo \"0000000000000\" > keyboard2.val");
+
 
 	int select = 0;
 	int total = 0;
@@ -102,32 +103,65 @@ int main()
 
 		for (int i=0; i<13; i++) button[i] = '0';
 
-		file = open("keyboard1.val", O_RDONLY);
-		if (file >= 0)
-		{	
-			read(file, &buffer, 13);
-			close(file);
-		}
+		for (int round=0; round<6; round++)
+		{
+			if (round == 0)
+			{
+				file = open("buttons1.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
+			else if (round == 1)
+			{
+				file = open("buttons2.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
+			else if (round == 2)
+			{
+				file = open("joystick1.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
+			else if (round == 3)
+			{
+				file = open("joystick2.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
+			else if (round == 4)
+			{
+				file = open("keyboard1.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
+			else if (round == 5)
+			{
+				file = open("keyboard2.val", O_RDONLY);
+				if (file >= 0)
+				{	
+					read(file, &buffer, 13);
+					close(file);
+				}
+			}
 
-		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
-		
-		file = open("joystick1.val", O_RDONLY);
-		if (file >= 0)
-		{	
-			read(file, &buffer, 13);
-			close(file);
+			for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
 		}
-
-		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
-		
-		file = open("buttons1.val", O_RDONLY);
-		if (file >= 0)
-		{	
-			read(file, &buffer, 13);
-			close(file);
-		}
-
-		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
 
 		if (button[5] == '1' || button[6] == '1') // select/start
 		{
