@@ -6219,8 +6219,8 @@ int main(int argc, char* argv[]) {
 
     arm_init();
 
-    if (argc < 3) {
-		printf("Arguments: <ROM file> <button file>\n");
+    if (argc < 2) {
+		printf("Arguments: <ROM file>\n");
 
         return 0;
     }
@@ -6340,6 +6340,7 @@ int main(int argc, char* argv[]) {
 	int menu_wait = 0;
 	unsigned long menu_clock = 0;
 	int menu_loop = 0;
+	int menu_open = 0;
 
     while (run) {
         run_frame();
@@ -6355,68 +6356,154 @@ int main(int argc, char* argv[]) {
 		key_input.w |= BTN_SEL;
 		key_input.w |= BTN_STA;
 
-		buttons_file = open(argv[2], O_RDONLY);
-		read(buttons_file, &buttons_buffer, 13);
-		close(buttons_file);
-
-		// get key inputs
-		//if (buttons_buffer[0] != '0') run = false; // exit
-		if (buttons_buffer[1] != '0') key_input.w &= ~BTN_U;
-		if (buttons_buffer[2] != '0') key_input.w &= ~BTN_D;
-		if (buttons_buffer[3] != '0') key_input.w &= ~BTN_L;
-		if (buttons_buffer[4] != '0') key_input.w &= ~BTN_R;
-		if (buttons_buffer[5] != '0') key_input.w &= ~BTN_SEL;
-		if (buttons_buffer[6] != '0') key_input.w &= ~BTN_STA;
-		if (buttons_buffer[7] != '0') key_input.w &= ~BTN_A;
-		if (buttons_buffer[8] != '0') key_input.w &= ~BTN_B;
-		if (buttons_buffer[11] != '0') key_input.w &= ~BTN_LT;
-		if (buttons_buffer[12] != '0') key_input.w &= ~BTN_RT;
-
-		turbo_a = 0;
-		turbo_b = 0;
-
-		if (buttons_buffer[9] != '0') turbo_a = 1;
-		if (buttons_buffer[10] != '0') turbo_b = 1;
-
-		turbo_counter++;
-
-		if (turbo_counter >= 6)
+		for (int round=0; round<6; round++)
 		{
-			turbo_counter = 0;
-			turbo_state = 1 - turbo_state;
-		}
+			for (int i=0; i<13; i++) buttons_buffer[i] = '0';
 
-		if (turbo_a > 0)
-		{
-			if (turbo_state > 0)
+			if (round == 0)
 			{
-				key_input.w &= ~BTN_A;
+				buttons_file = open("buttons1.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
 			}
-			else
+			else if (round == 1)
 			{
-				key_input.w |= BTN_A;
+				buttons_file = open("buttons2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
 			}
-		}
+			else if (round == 2)
+			{
+				buttons_file = open("joystick1.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 3)
+			{
+				buttons_file = open("joystick2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 4)
+			{
+				buttons_file = open("keyboard1.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 5)
+			{
+				buttons_file = open("keyboard2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
 
-		if (turbo_b > 0)
-		{
-			if (turbo_state > 0)
+			if (buttons_buffer[0] != '0') menu_open = 1; // menu
+			if (buttons_buffer[1] != '0') key_input.w &= ~BTN_U;
+			if (buttons_buffer[2] != '0') key_input.w &= ~BTN_D;
+			if (buttons_buffer[3] != '0') key_input.w &= ~BTN_L;
+			if (buttons_buffer[4] != '0') key_input.w &= ~BTN_R;
+			if (buttons_buffer[5] != '0') key_input.w &= ~BTN_SEL;
+			if (buttons_buffer[6] != '0') key_input.w &= ~BTN_STA;
+			if (buttons_buffer[7] != '0') key_input.w &= ~BTN_A;
+			if (buttons_buffer[8] != '0') key_input.w &= ~BTN_B;
+			if (buttons_buffer[11] != '0') key_input.w &= ~BTN_LT;
+			if (buttons_buffer[12] != '0') key_input.w &= ~BTN_RT;
+
+			turbo_a = 0;
+			turbo_b = 0;
+
+			if (buttons_buffer[9] != '0') turbo_a = 1;
+			if (buttons_buffer[10] != '0') turbo_b = 1;
+
+			turbo_counter++;
+
+			if (turbo_counter >= 6)
 			{
-				key_input.w &= ~BTN_B;
+				turbo_counter = 0;
+				turbo_state = 1 - turbo_state;
 			}
-			else
+
+			if (turbo_a > 0)
 			{
-				key_input.w |= BTN_B;
+				if (turbo_state > 0)
+				{
+					key_input.w &= ~BTN_A;
+				}
+				else
+				{
+					key_input.w |= BTN_A;
+				}
+			}
+
+			if (turbo_b > 0)
+			{
+				if (turbo_state > 0)
+				{
+					key_input.w &= ~BTN_B;
+				}
+				else
+				{
+					key_input.w |= BTN_B;
+				}
 			}
 		}
 		
-		if (buttons_buffer[0] != '0') // menu
+		if (menu_open > 0) // menu
 		{
+			menu_open = 0;
+
+			char buttons_array[13];
+
+			buttons_buffer[0] = '1';
+
 			while (buttons_buffer[0] != '0')
 			{
-				buttons_file = open(argv[2], O_RDONLY);
-				read(buttons_file, &buttons_buffer, 13);
-				close(buttons_file);
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 			}
 
 			system("sleep 1 ; clear");
@@ -6429,9 +6516,52 @@ int main(int argc, char* argv[]) {
 
 			while (menu_loop == 1)
 			{
-				buttons_file = open(argv[2], O_RDONLY);
-				read(buttons_file, &buttons_buffer, 13);
-				close(buttons_file);
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 
 				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
 				{
