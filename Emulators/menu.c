@@ -8,9 +8,12 @@
 
 int main()
 {
-	system("echo \"0000000000000\" > keyboard.val");
-	system("echo \"0000000000000\" > joystick.val");
-	system("echo \"0000000000000\" > buttons.val");
+	system("echo \"0000000000000\" > keyboard1.val");
+	system("echo \"0000000000000\" > keyboard2.val");
+	system("echo \"0000000000000\" > joystick1.val");
+	system("echo \"0000000000000\" > joystick2.val");
+	system("echo \"0000000000000\" > buttons1.val");
+	system("echo \"0000000000000\" > buttons2.val");
 
 	int select = 0;
 	int total = 0;
@@ -99,35 +102,29 @@ int main()
 
 		for (int i=0; i<13; i++) button[i] = '0';
 
-		file = open("keyboard.val", O_RDONLY);
-		read(file, &buffer, 13);
-		close(file);
-
-		if (buffer[7] == '1') // regular buttons
-		{
-			buttons_choice = 1; // keyboard
+		file = open("keyboard1.val", O_RDONLY);
+		if (file >= 0)
+		{	
+			read(file, &buffer, 13);
+			close(file);
 		}
 
 		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
 		
-		file = open("joystick.val", O_RDONLY);
-		read(file, &buffer, 13);
-		close(file);
-
-		if (buffer[7] == '1') // regular buttons
-		{
-			buttons_choice = 2; // joystick
+		file = open("joystick1.val", O_RDONLY);
+		if (file >= 0)
+		{	
+			read(file, &buffer, 13);
+			close(file);
 		}
 
 		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
 		
-		file = open("buttons.val", O_RDONLY);
-		read(file, &buffer, 13);
-		close(file);
-
-		if (buffer[7] == '1') // regular buttons
-		{
-			buttons_choice = 0; // onboard buttons
+		file = open("buttons1.val", O_RDONLY);
+		if (file >= 0)
+		{	
+			read(file, &buffer, 13);
+			close(file);
 		}
 
 		for (int i=0; i<13; i++) if (buffer[i] != '0') button[i] = '1';
@@ -187,18 +184,7 @@ int main()
 			if (strstr(list[select], ".NES") != NULL ||
 				strstr(list[select], ".nes") != NULL)
 			{
-				if (buttons_choice == 0) // onboard buttons
-				{
-					sprintf(command, "echo './PICnes/PICnes.o %s/%s buttons.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 1) // keyboard
-				{
-					sprintf(command, "echo './PICnes/PICnes.o %s/%s keyboard.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 2) // joystick
-				{
-					sprintf(command, "echo './PICnes/PICnes.o %s/%s joystick.val' > game.sh", path, list[select]);
-				}
+				sprintf(command, "echo './PICnes/PICnes.o %s/%s' > game.sh", path, list[select]); // alter some...
 
 				system(command);
 
@@ -207,19 +193,8 @@ int main()
 			else if (strstr(list[select], ".GBA") != NULL ||
 				strstr(list[select], ".gba") != NULL) // this must come before check for .GB or .gb!!!
 			{
-				if (buttons_choice == 0) // onboard buttons
-				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s buttons.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 1) // keyboard
-				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s keyboard.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 2) // joystick
-				{	
-					sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s joystick.val' > game.sh", path, list[select]);
-				}
-
+				sprintf(command, "echo './gdkGBA/gdkGBA.o %s/%s' > game.sh", path, list[select]);
+			
 				system(command);
 
 				running = 0;
@@ -229,19 +204,8 @@ int main()
 				strstr(list[select], ".GBC") != NULL ||
 				strstr(list[select], ".gbc") != NULL)
 			{
-				if (buttons_choice == 0) // onboard buttons
-				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s buttons.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 1) // keyboard
-				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s keyboard.val' > game.sh", path, list[select]);
-				}
-				else if (buttons_choice == 2) // joystick
-				{
-					sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s joystick.val' > game.sh", path, list[select]);
-				}
-
+				sprintf(command, "echo './PeanutGB/PeanutGB.o %s/%s' > game.sh", path, list[select]);
+				
 				system(command);
 
 				running = 0;

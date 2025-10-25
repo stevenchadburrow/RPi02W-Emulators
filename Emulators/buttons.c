@@ -6,9 +6,12 @@
 
 // must compile with:  -lpigpio
 
+#define LOOPS 3
+
 int main()
 {
-	system("echo \"0000000000000\" > buttons.val");
+	system("echo \"0000000000000\" > buttons1.val");
+	system("echo \"0000000000000\" > buttons2.val");
 
 	char button[13];
 
@@ -56,84 +59,92 @@ int main()
 	gpioSetMode(18, PI_INPUT); // menu
 	gpioSetPullUpDown(18, PI_PUD_UP);
 
+	int swap = 1;
+
 	while (1)
 	{
 		for (int i=0; i<13; i++) button[i] = '0';
 
-		if (gpioRead(18) == 0) // menu
+		for (int i=0; i<LOOPS; i++)
 		{
-			button[0] = '1';
-		}
+			if (gpioRead(18) == 0) // menu
+			{
+				button[0] = '1';
+			}
 
-		if (gpioRead(4) == 0) // du
-		{
-			button[1] = '1';
-		}
+			if (gpioRead(4) == 0) // du
+			{
+				button[1] = '1';
+			}
 
-		if (gpioRead(7) == 0) // dr?
-		{
-			button[2] = '1';
-		}
+			if (gpioRead(7) == 0) // dr?
+			{
+				button[2] = '1';
+			}
 
-		if (gpioRead(6) == 0) // dl
-		{
-			button[3] = '1';
-		}
+			if (gpioRead(6) == 0) // dl
+			{
+				button[3] = '1';
+			}
 
-		if (gpioRead(5) == 0) // dd?
-		{
-			button[4] = '1';
-		}
+			if (gpioRead(5) == 0) // dd?
+			{
+				button[4] = '1';
+			}
 
-		if (gpioRead(16) == 0) // select
-		{
-			button[5] = '1';
-		}
+			if (gpioRead(16) == 0) // select
+			{
+				button[5] = '1';
+			}
 
-		if (gpioRead(17) == 0) // start
-		{
-			button[6] = '1';
-		}
+			if (gpioRead(17) == 0) // start
+			{
+				button[6] = '1';
+			}
 
-		if (gpioRead(22) == 0) // a
-		{
-			button[7] = '1';
-		}
+			if (gpioRead(22) == 0) // a
+			{
+				button[7] = '1';
+			}
 
-		if (gpioRead(23) == 0) // b
-		{
-			button[8] = '1';
-		}
+			if (gpioRead(23) == 0) // b
+			{
+				button[8] = '1';
+			}
 
-		if (gpioRead(24) == 0) // x
-		{
-			button[9] = '1';
-		}
+			if (gpioRead(24) == 0) // x
+			{
+				button[9] = '1';
+			}
 
-		if (gpioRead(25) == 0) // y
-		{
-			button[10] = '1';
-		}
+			if (gpioRead(25) == 0) // y
+			{
+				button[10] = '1';
+			}
 
-		if (gpioRead(26) == 0) // lb
-		{
-			button[11] = '1';
-		}
+			if (gpioRead(26) == 0) // lb
+			{
+				button[11] = '1';
+			}
 
-		if (gpioRead(27) == 0) // rb
-		{
-			button[12] = '1';
+			if (gpioRead(27) == 0) // rb
+			{
+				button[12] = '1';
+			}
 		}
 
 		for (int i=0; i<256; i++) string[i] = 0;
 
-		sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > buttons.val",
+		sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > buttons%d.val",
 			button[0], button[1], button[2], button[3],
 			button[4], button[5], button[6], button[7], button[8],
-			button[9], button[10], button[11], button[12]);
+			button[9], button[10], button[11], button[12], swap);
 
 		//printf("%s\n", string);
 		system(string);
+		
+		if (swap == 1) swap = 2;
+		else swap = 1;
 
 		//if (button[0] != '0') break;
 	}

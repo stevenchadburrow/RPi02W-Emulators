@@ -6,7 +6,8 @@
 
 int main()
 {
-	system("echo \"0000000000000\" > joystick.val");
+	system("echo \"0000000000000\" > joystick1.val");
+	system("echo \"0000000000000\" > joystick2.val");
 
 	char button[13];
 
@@ -104,7 +105,17 @@ int main()
 
 			for (int i=0; i<256; i++) string[i] = 0;
 	
-			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > joystick.val",
+			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > joystick1.val",
+				button[0], button[1], button[2], button[3],
+				button[4], button[5], button[6], button[7], button[8],
+				button[9], button[10], button[11], button[12]);
+
+			//printf("%s\n", string);
+			system(string);
+
+			for (int i=0; i<256; i++) string[i] = 0;
+	
+			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > joystick2.val",
 				button[0], button[1], button[2], button[3],
 				button[4], button[5], button[6], button[7], button[8],
 				button[9], button[10], button[11], button[12]);

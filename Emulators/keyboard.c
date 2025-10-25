@@ -6,7 +6,8 @@
 
 int main()
 {
-	system("echo \"0000000000000\" > keyboard.val");
+	system("echo \"0000000000000\" > keyboard1.val");
+	system("echo \"0000000000000\" > keyboard2.val");
 
 	char button[13];
 
@@ -104,7 +105,17 @@ int main()
 
 			for (int i=0; i<256; i++) string[i] = 0;
 	
-			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > keyboard.val",
+			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > keyboard1.val",
+				button[0], button[1], button[2], button[3],
+				button[4], button[5], button[6], button[7], button[8],
+				button[9], button[10], button[11], button[12]);
+
+			//printf("%s\n", string);
+			system(string);
+
+			for (int i=0; i<256; i++) string[i] = 0;
+	
+			sprintf(string, "echo \"%c%c%c%c%c%c%c%c%c%c%c%c%c\" > keyboard2.val",
 				button[0], button[1], button[2], button[3],
 				button[4], button[5], button[6], button[7], button[8],
 				button[9], button[10], button[11], button[12]);
