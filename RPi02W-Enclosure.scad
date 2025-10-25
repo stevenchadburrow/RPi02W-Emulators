@@ -19,8 +19,9 @@ $fn = 20; // higher detail to curves
 
 thickness = 2.0;
 gap = 0.5;
-height = 15.0;
-board = 5.0; // top of pcb's 
+height = 17.0;
+board = 4.0; // top of pcb's 
+
 
 scale([1, -1, 1]) {
 difference() {
@@ -92,19 +93,19 @@ union() {
 			cube([10.0,thickness+gap+4,8.0]);
 		}
 	}
-	// lcd screen
-	translate([23.0,18.0,height-1]) {
-		cube([54.0,38.0,thickness+2]);
+	// lcd screen (top corner at 23.0,18.0)
+	translate([28.0,19.0,height-1]) {
+		cube([49.0,37.0,thickness+2]);
 	}
 	// pi ports
-	translate([35.0,122.5-gap-thickness,board+2-5.0]) {
+	translate([35.0,122.5-gap-thickness,board]) {
 		cube([65.0,thickness+2*gap+2*thickness,5.0]);
 	}
 	// pi sdcard
-	translate([100.0-1.0,100.0,board+2-3.0]) {
-		cube([thickness+gap+2.0,12.5,3.0]);
-		translate([6.75,6.25,1.5]) {
-			scale([1,1.85,1]) {
+	translate([100.0-1.0,100.0,board]) {
+		cube([thickness+gap+2.0,12.5,4.0]);
+		translate([6.75,6.25,2.0]) {
+			scale([1.0,1.85,1.0]) {
 				sphere(5.0);
 			}
 		}
@@ -148,7 +149,7 @@ union() {
 	}
 	// led
 	translate([68.75,62.5,height-1]) {
-		cylinder(thickness+2,3.25,3.25);
+		cylinder(thickness+2,3.0,3.0);
 	}
 	// speaker holes
 	translate([7.5, 112.5, height-1]) {
@@ -180,36 +181,27 @@ union() {
 	}
 	// screw holes
 	translate([19.5,20.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	translate([80.75,20.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	translate([19.5,54.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	translate([80.75,54.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	translate([3.5,96.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	//translate([38.5,96.5,-gap-thickness]) {
-	//	cylinder(gap+thickness,3.5,1.5);
+	//	cylinder(gap+thickness,3.5,1.0);
 	//}
 	translate([96.5,96.5,-gap-thickness]) {
-		cylinder(gap+thickness,3.5,1.5);
+		cylinder(gap+thickness,3.5,1.0);
 	}
 	// ventilation holes
-	//translate([43.5,100.0,-thickness-gap-1]) {
-	//	cylinder(gap+thickness+1,2.0,2.0);
-	//	translate([0.0,8.0,0.0]) {
-	//		cylinder(gap+thickness+1,2.0,2.0);
-	//	}
-	//	translate([0.0,16.0,0.0]) {
-	//		cylinder(gap+thickness+1,2.0,2.0);
-	//	}
-	//}
 	translate([43.5+8.0,100.0,-thickness-gap-1]) {
 		cylinder(gap+thickness+1,2.0,2.0);
 		translate([0.0,8.0,0.0]) {
@@ -255,15 +247,6 @@ union() {
 			cylinder(gap+thickness+1,2.0,2.0);
 		}
 	}
-	//translate([43.5+48.0,100.0,-thickness-gap-1]) {
-	//	cylinder(gap+thickness+1,2.0,2.0);
-	//	translate([0.0,8.0,0.0]) {
-	//		cylinder(gap+thickness+1,2.0,2.0);
-	//	}
-	//	translate([0.0,16.0,0.0]) {
-	//		cylinder(gap+thickness+1,2.0,2.0);
-	//	}
-	//}
 }
 
 // uncomment to show top half
@@ -290,7 +273,7 @@ union() {
 					cube([4.75+gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	translate([80.75,20.5,0.0-gap]) {
@@ -301,7 +284,7 @@ union() {
 					cube([4.75+gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	translate([19.5,54.5,0.0-gap]) {
@@ -312,7 +295,7 @@ union() {
 					cube([6.25+2*gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	translate([80.75,54.5,0.0-gap]) {
@@ -323,7 +306,7 @@ union() {
 					cube([6.25+2*gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	translate([3.5,96.5,0.0-gap]) {
@@ -334,7 +317,7 @@ union() {
 					cube([4.75+gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	//translate([38.5,96.5,0.0-gap]) {
@@ -345,7 +328,7 @@ union() {
 	//			//	cube([4.75+gap,4.0,height+2*gap]);
 	//			//}
 	//		}
-	//		cylinder(height+2*gap,1.5,1.5);
+	//		cylinder(height+2*gap,1.0,1.0);
 	//	}
 	//}
 	translate([96.5,96.5,0.0-gap]) {
@@ -356,7 +339,7 @@ union() {
 					cube([4.75+gap,4.0,height+2*gap]);
 				}
 			}
-			cylinder(height+2*gap,1.5,1.5);
+			cylinder(height+2*gap,1.0,1.0);
 		}
 	}
 	// directional button supports
@@ -432,21 +415,22 @@ union() {
 	// led support
 	translate([68.75,62.5,board+6.0]) {
 		difference() {
-			cylinder(height+thickness+gap-board-6.0-1,6.0,6.0);
-			cylinder(height+thickness+gap-board-6.0-1,3.25,3.25);
+			cylinder(height+thickness+gap-board-6.0-1,5.0,5.0);
+			cylinder(height+thickness+gap-board-6.0-1,3.0,3.0);
 		}
 	}
-	// lcd 'supports'
+	// lcd 'supports' (top corner at 23.0,18.0)
 	difference() {
-		translate([23.0-2.0,18.0-2.0,board+6.0]) {
-			cube([54.0+4.0,38.0+4.0,height+thickness+gap-board-6.0-1]);
+		translate([28.0-2.0-5.0,19.0-2.0,board+8.0]) {
+			cube([49.0+4.0+5.0,37.0+4.0,height+thickness+gap-board-8.0-1]);
 		}
-		translate([23.0,18.0,board+6.0]) {
-			cube([54.0,38.0,height+thickness+gap-board-6.0-1]);
+		translate([28.0,19.0,board+8.0]) {
+			cube([49.0,37.0,height+thickness+gap-board-8.0-1]);
 		}
 	}
 } 
 union() {
+	// remove supports for pcb
 	translate([15.0-gap,0.0-gap,board-1.6])
 	{
 		cube([70.0+2*gap,57.5+2*gap,1.6]);
@@ -454,6 +438,14 @@ union() {
 	translate([0.0-gap,57.5-gap,board-1.6])
 	{
 		cube([100.0+2*gap,63.75+2*gap,1.6]);
+	}
+	// remove supports around lcd
+	translate([23.0-15.0,18.0-1.0,board-2.0]) {
+		cube([90.0,41.0,8.0+2.0]);
+	}
+	// remove supports around pi
+	translate([75.0,75.0,board]) {
+		cube([30.0,30.0,5.0]);
 	}
 } 
 
@@ -483,9 +475,9 @@ module button()
 			cylinder(1.5, 5, 5);
 			intersection()
 			{
-				translate([0, 0, -3])
+				translate([0, 0, -3 + 3])
 				{
-					sphere(height - board - 5 + thickness + gap + 5);
+					sphere(height - board - 5 + thickness + gap + 5 - 3);
 				}
 				cylinder(100, 3.5, 3.5);
 			}
@@ -552,6 +544,7 @@ module shoulder()
 	}
 }
 
+
 scale([1,-1,1]) {
 
 	translate([12.75,69.5,board+5]) { button(); }
@@ -580,6 +573,10 @@ scale([1,-1,1]) {
 	}
 }
 
+
+//button();
+//inverse();
+//shoulder();
 
 
 
