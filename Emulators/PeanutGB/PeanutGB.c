@@ -5150,7 +5150,7 @@ int tty_file = 0;
 
 // DMG: core = 0
 // GBC: core = 1
-int PeanutGB(unsigned char core, const char *buttons_filename)
+int PeanutGB(unsigned char core)
 {	
 	printf("Peanut-GB, by Mahyar Koshkouei\n");
 
@@ -5290,6 +5290,7 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 	int menu_wait = 0;
 	unsigned long menu_clock = 0;
 	int menu_loop = 0;
+	int menu_open = 0;
 
 	unsigned long previous_clock = 0;
 
@@ -5308,40 +5309,159 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 
 		speed_limiter = 1; // normal speed by default
 
-		turbo_a = 0;
-		turbo_b = 0;
+		turbo_counter++;
 
-		buttons_file = open(buttons_filename, O_RDONLY);
-		read(buttons_file, &buttons_buffer, 13);
-		close(buttons_file);
-
-		// get key inputs
-		//if (buttons_buffer[0] != '0') infinite_loop = 0; // exit
-		if (buttons_buffer[1] != '0') gb.direct.joypad &= ~JOYPAD_UP;
-		if (buttons_buffer[2] != '0') gb.direct.joypad &= ~JOYPAD_DOWN;
-		if (buttons_buffer[3] != '0') gb.direct.joypad &= ~JOYPAD_LEFT;
-		if (buttons_buffer[4] != '0') gb.direct.joypad &= ~JOYPAD_RIGHT;
-		if (buttons_buffer[5] != '0') gb.direct.joypad &= ~JOYPAD_SELECT;
-		if (buttons_buffer[6] != '0') gb.direct.joypad &= ~JOYPAD_START;
-		if (buttons_buffer[7] != '0') gb.direct.joypad &= ~JOYPAD_A;
-		if (buttons_buffer[8] != '0') gb.direct.joypad &= ~JOYPAD_B;
-
-		if (buttons_buffer[9] != '0') turbo_a = 1;
-		if (buttons_buffer[10] != '0') turbo_b = 1;
-
-		if (buttons_buffer[11] != '0') { }
-		if (buttons_buffer[12] != '0')
+		if (turbo_counter >= 6)
 		{
-			speed_limiter = 0;
+			turbo_counter = 0;
+			turbo_state = 1 - turbo_state;
 		}
 
-		if (buttons_buffer[0] != '0') // menu
+		for (int round=0; round<6; round++)
 		{
-			while (buttons_buffer[0] != '0')
+			for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+			if (round == 0)
 			{
-				buttons_file = open(buttons_filename, O_RDONLY);
+				buttons_file = open("buttons1.val", O_RDONLY);
 				read(buttons_file, &buttons_buffer, 13);
 				close(buttons_file);
+			}
+			else if (round == 1)
+			{
+				buttons_file = open("buttons2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 2)
+			{
+				buttons_file = open("joystick1.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 3)
+			{
+				buttons_file = open("joystick2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 4)
+			{
+				buttons_file = open("keyboard1.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+			else if (round == 5)
+			{
+				buttons_file = open("keyboard2.val", O_RDONLY);
+				read(buttons_file, &buttons_buffer, 13);
+				close(buttons_file);
+			}
+
+			// get key inputs
+			if (buttons_buffer[0] != '0') menu_open = 1; // menu
+			if (buttons_buffer[1] != '0') gb.direct.joypad &= ~JOYPAD_UP;
+			if (buttons_buffer[2] != '0') gb.direct.joypad &= ~JOYPAD_DOWN;
+			if (buttons_buffer[3] != '0') gb.direct.joypad &= ~JOYPAD_LEFT;
+			if (buttons_buffer[4] != '0') gb.direct.joypad &= ~JOYPAD_RIGHT;
+			if (buttons_buffer[5] != '0') gb.direct.joypad &= ~JOYPAD_SELECT;
+			if (buttons_buffer[6] != '0') gb.direct.joypad &= ~JOYPAD_START;
+			if (buttons_buffer[7] != '0') gb.direct.joypad &= ~JOYPAD_A;
+			if (buttons_buffer[8] != '0') gb.direct.joypad &= ~JOYPAD_B;
+
+			turbo_a = 0;
+			turbo_b = 0;
+
+			if (buttons_buffer[9] != '0') turbo_a = 1;
+			if (buttons_buffer[10] != '0') turbo_b = 1;
+
+			if (buttons_buffer[11] != '0') { }
+			if (buttons_buffer[12] != '0')
+			{
+				speed_limiter = 0;
+			}
+
+			if (turbo_a > 0)
+			{
+				if (turbo_state > 0)
+				{
+					gb.direct.joypad &= ~JOYPAD_A;
+				}
+				else
+				{
+					gb.direct.joypad |= JOYPAD_A;
+				}
+			}
+
+			if (turbo_b > 0)
+			{
+				if (turbo_state > 0)
+				{
+					gb.direct.joypad &= ~JOYPAD_B;
+				}
+				else
+				{
+					gb.direct.joypad |= JOYPAD_B;
+				}
+			}
+		}
+
+		if (menu_open > 0) // menu
+		{
+			menu_open = 0;
+
+			char buttons_array[13];
+
+			buttons_buffer[0] = '1';
+
+			while (buttons_buffer[0] != '0')
+			{
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 			}
 
 			system("sleep 1 ; clear");
@@ -5354,9 +5474,52 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 
 			while (menu_loop == 1)
 			{
-				buttons_file = open(buttons_filename, O_RDONLY);
-				read(buttons_file, &buttons_buffer, 13);
-				close(buttons_file);
+				for (int i=0; i<13; i++) buttons_buffer[i] = '0';
+
+				for (int round=0; round<6; round++)
+				{
+					if (round == 0)	
+					{
+						buttons_file = open("buttons1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 1)	
+					{
+						buttons_file = open("buttons2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 2)	
+					{
+						buttons_file = open("joystick1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 3)	
+					{
+						buttons_file = open("joystick2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 4)	
+					{
+						buttons_file = open("keyboard1.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+					else if (round == 5)	
+					{
+						buttons_file = open("keyboard2.val", O_RDONLY);
+						read(buttons_file, &buttons_array, 13);
+						close(buttons_file);
+					}
+
+					for (int i=0; i<13; i++)
+					{
+						if (buttons_array[i] != '0') buttons_buffer[i] = '1';
+					}
+				}
 
 				if (buttons_buffer[1] != '0' && clock() > menu_clock + 100000)
 				{
@@ -5469,38 +5632,6 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 			ioctl(tty_file, KDSETMODE, KD_GRAPHICS); // turn off tty		
 		}
 
-		turbo_counter++;
-
-		if (turbo_counter >= 6)
-		{
-			turbo_counter = 0;
-			turbo_state = 1 - turbo_state;
-		}
-
-		if (turbo_a > 0)
-		{
-			if (turbo_state > 0)
-			{
-				gb.direct.joypad &= ~JOYPAD_A;
-			}
-			else
-			{
-				gb.direct.joypad |= JOYPAD_A;
-			}
-		}
-
-		if (turbo_b > 0)
-		{
-			if (turbo_state > 0)
-			{
-				gb.direct.joypad &= ~JOYPAD_B;
-			}
-			else
-			{
-				gb.direct.joypad |= JOYPAD_B;
-			}
-		}
-
 		/* Execute CPU cycles until the screen has to be redrawn. */
 		gb_run_frame(&gb);
 
@@ -5550,9 +5681,9 @@ int PeanutGB(unsigned char core, const char *buttons_filename)
 
 int main(const int argc, const char **argv)
 {
-	if (argc < 3)
+	if (argc < 2)
 	{
-		printf("Arguments: <ROM file> <button file>\n");
+		printf("Arguments: <ROM file>\n");
 	
 		return 0;
 	}
@@ -5639,8 +5770,8 @@ int main(const int argc, const char **argv)
 	// this sets the volume, change accordingly
 	//system("amixer set Master 50%");
 
-	//PeanutGB(0, argv[2]); // DMG only
-	PeanutGB(1, argv[2]); // GBC or DMG
+	//PeanutGB(0); // DMG only
+	PeanutGB(1); // GBC or DMG
 
 	ioctl(tty_file, KDSETMODE, KD_TEXT); // turn on tty
 	close(tty_file);
