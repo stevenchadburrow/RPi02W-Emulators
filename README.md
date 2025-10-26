@@ -86,5 +86,7 @@ You will also need a USB-Micro to USB-A (Female) adapter, and an HDMI-mini to HD
 <img src="Images/RPi02W-Prelim-LCD.jpg"><br>
 <img src="Images/RPi02W-Prelim-PCB.png"><br>
 <img src="Images/RPi02W-Prelim-Case.png"><br>
+<img src="Images/RPi02W-Prelim-Prototype.jpg"><br>
+
 
 
